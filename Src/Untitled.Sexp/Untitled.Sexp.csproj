@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Untitled.Sexp</AssemblyName>
+    <AssemblyTitle>Untitled.Sexp</AssemblyTitle>
+    <Description>A simple S-expressions reader/writer.</Description>
+    <TargetFrameworks>net40;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <LangVersion>8.0</LangVersion>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Nullable>enable</Nullable>
+    <PackageTags>Sexp Sexp</PackageTags>
+
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Untitled.Sexp.Tests" />
+  </ItemGroup>
+
+</Project>

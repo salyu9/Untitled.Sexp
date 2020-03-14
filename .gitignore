@@ -1,0 +1,7 @@
+[Bb]in/
+[Oo]bj/
+
+.vs/
+.vscode/
+
+.DS_Store
