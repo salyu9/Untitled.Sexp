@@ -9,7 +9,7 @@ namespace Untitled.Sexp
     /// </summary>
     public static class Sexp
     {
-        private static UTF8Encoding utf8 = new UTF8Encoding(false, true);
+        private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
 
         /// <summary>
         /// Parse a string, return an sexp value.
@@ -43,7 +43,7 @@ namespace Untitled.Sexp
         /// <returns>The sexp value parsed. If no value available, return SValue.Eof object.</returns>
         public static SValue ParseFile(string filePath, SexpTextReaderSettings? settings = null)
         {
-            using var reader = new StreamReader(filePath, utf8, true);
+            using var reader = new StreamReader(filePath, Utf8, true);
             return new SexpTextReader(reader).Read();
         }
 
@@ -55,7 +55,7 @@ namespace Untitled.Sexp
         /// <returns>An IEnumerable object iterates over all sexp values parsed.</returns>
         public static IEnumerable<SValue> ParseFileAll(string filePath, SexpTextReaderSettings? settings = null)
         {
-            using var reader = new StreamReader(filePath, utf8, true);
+            using var reader = new StreamReader(filePath, Utf8, true);
             return new SexpTextReader(reader, settings ?? SexpTextReaderSettings.Default).ReadAll();
         }
     }

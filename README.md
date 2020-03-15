@@ -4,7 +4,7 @@ Untitled.Sexp is a simple .Net library for reading and writing s-expressions.
 
 ## Usage
 
-The core type in Untitled.Sexp is ```SValue```, which represents an s-expression value/object. The content of an ```SValue``` can be a number, boolean, character, symbol, string, pair/list, or bytes.
+The core type in Untitled.Sexp is ```SValue```, which represents an s-expression value/object. The content of an ```SValue``` can be a number, boolean, character, symbol, string, pair/list, or a byte array.
 The syntax of values of these types is similar to scheme.
 
 ### Symbols
@@ -30,7 +30,7 @@ An ```SValue``` can hold a number with type ```int```, ```long``` or ```double``
 
 ### Booleans
 
-Short and long form are supported.
+Short and long forms are supported.
 
 ```scheme
 #t
@@ -39,7 +39,7 @@ Short and long form are supported.
 
 ### Characters
 
-A character is an unicode scalar value (0 ~ 0x10FFFF without surrogates). The underlying type is ```int```. If there is no need to deal with character larger than 0xFFFF, you can use ```AsChar()``` or just cast ```SValue``` to ```char```, otherwise ```CharToString()``` must be called to fetch characters correctly.
+A character is a unicode scalar value (0 ~ 0x10FFFF except surrogates). The underlying type is ```int```. If there is no need to deal with character larger than 0xFFFF, you can use ```AsChar()``` or just cast ```SValue``` to ```char```, otherwise ```CharToString()``` must be called to fetch characters correctly.
 Single character, escaped and character name are allowed.
 
 ```scheme
@@ -67,7 +67,7 @@ An ```SValue``` can hold a ```byte[]``` data and exposes it as read-only collect
 #"bytestring"       ; byte string
 ```
 
-### Pais and lists
+### Pairs and lists
 
 Pairs and lists are just like those in lisp languages. Default reader setting allows brackets and braces as delimiters.
 
@@ -98,7 +98,7 @@ Here is a simple example shows how to create various types of values. ```SValue`
 ```csharp
 var listFormatting = new ListFormatting
 {
-    Parenthese = ParentheseType.Brace,
+    Parentheses = ParenthesesType.Braces,
     LineBreakIndex = 4,
     LineExtraSpaces = 4,
 };
@@ -138,4 +138,4 @@ Call ```ToString()``` on an ```SValue``` will create an ```SexpTextWriter``` to 
     #\r}
 ```
 
-Use ```SValue.Parse``` or an ```SexpTextReader``` to parse strings to ```SValue``` object. Note that only radix and list delimiters will be kept by reader, other formatting informations are ignored.
+Use ```SValue.Parse()``` or an ```SexpTextReader``` to parse strings to ```SValue``` object. Note that only radix and list delimiters will be kept by reader, other formatting informations are ignored.

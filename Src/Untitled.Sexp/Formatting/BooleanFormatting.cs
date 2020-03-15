@@ -1,5 +1,3 @@
-using System;
-
 namespace Untitled.Sexp.Formatting
 {
     /// <summary>
@@ -10,6 +8,6 @@ namespace Untitled.Sexp.Formatting
         /// <summary>
         /// Whether use long form. If true, bools will be written as #true/#false, otherwise #t/#f.
         /// </summary>
-        public bool LongForm { get; set; } = false;
+        public bool LongForm { get; set; }
     }
 }

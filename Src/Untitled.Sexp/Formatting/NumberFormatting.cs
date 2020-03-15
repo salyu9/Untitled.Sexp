@@ -1,5 +1,3 @@
-using System;
-
 namespace Untitled.Sexp.Formatting
 {
     /// <summary>

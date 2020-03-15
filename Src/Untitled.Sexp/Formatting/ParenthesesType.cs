@@ -1,21 +1,21 @@
 namespace Untitled.Sexp.Formatting
 {
     /// <summary>
-    /// Specify parenthese type of lists/pairs.
+    /// Specify parentheses type of lists/pairs.
     /// </summary>
-    public enum ParentheseType
+    public enum ParenthesesType
     {
         /// <summary>
         /// Use ().
         /// </summary>
-        Parenthese,
+        Parentheses,
         /// <summary>
         /// Use [].
         /// </summary>
-        Bracket,
+        Brackets,
         /// <summary>
         /// Use {}.
         /// </summary>
-        Brace,
+        Braces,
     }
 }

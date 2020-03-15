@@ -254,7 +254,7 @@ namespace Untitled.Sexp
                         return;
                     }
                 default:
-                    throw new NotImplementedException();
+                    throw new SexpException($"Invalid value type {value.Type}");
             }
         }
 
@@ -535,14 +535,14 @@ namespace Untitled.Sexp
             }
             else
             {
-                var parenthese = bytesFormatting.Parenthese;
+                var parenthese = bytesFormatting.Parentheses;
                 WriteFinal("#u8");
                 WriteFinal(parenthese switch
                 {
-                    ParentheseType.Parenthese => '(',
-                    ParentheseType.Bracket => '[',
-                    ParentheseType.Brace => '{',
-                    _ => throw new ArgumentException($"Invalid {nameof(ParentheseType)}: {parenthese}")
+                    ParenthesesType.Parentheses => '(',
+                    ParenthesesType.Brackets => '[',
+                    ParenthesesType.Braces => '{',
+                    _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
                 });
 
                 var limit = bytesFormatting.LineLimit;
@@ -578,10 +578,10 @@ namespace Untitled.Sexp
 
                 WriteFinal(parenthese switch
                 {
-                    ParentheseType.Parenthese => ')',
-                    ParentheseType.Bracket => ']',
-                    ParentheseType.Brace => '}',
-                    _ => throw new ArgumentException($"Invalid {nameof(ParentheseType)}: {parenthese}")
+                    ParenthesesType.Parentheses => ')',
+                    ParenthesesType.Brackets => ']',
+                    ParenthesesType.Braces => '}',
+                    _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
                 });
             }
         }
@@ -590,13 +590,13 @@ namespace Untitled.Sexp
         {
             var l = _linePosition + listFormatting.LineExtraSpaces;
 
-            var parenthese = listFormatting.Parenthese;
+            var parenthese = listFormatting.Parentheses;
             WriteFinal(parenthese switch
             {
-                ParentheseType.Parenthese => '(',
-                ParentheseType.Bracket => '[',
-                ParentheseType.Brace => '{',
-                _ => throw new ArgumentException($"Invalid {nameof(ParentheseType)}: {parenthese}")
+                ParenthesesType.Parentheses => '(',
+                ParenthesesType.Brackets => '[',
+                ParenthesesType.Braces => '{',
+                _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
             });
 
             var i = 0;
@@ -638,10 +638,10 @@ namespace Untitled.Sexp
 
             WriteFinal(parenthese switch
             {
-                ParentheseType.Parenthese => ')',
-                ParentheseType.Bracket => ']',
-                ParentheseType.Brace => '}',
-                _ => throw new ArgumentException($"Invalid {nameof(ParentheseType)}: {parenthese}")
+                ParenthesesType.Parentheses => ')',
+                ParenthesesType.Brackets => ']',
+                ParenthesesType.Braces => '}',
+                _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
             });
         }
 

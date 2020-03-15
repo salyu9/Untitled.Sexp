@@ -12,7 +12,7 @@ namespace Untitled.Sexp.Samples
         {
             var listFormatting = new ListFormatting
             {
-                Parenthese = ParentheseType.Brace,
+                Parentheses = ParenthesesType.Braces,
                 LineBreakIndex = 4,
                 LineExtraSpaces = 4,
             };

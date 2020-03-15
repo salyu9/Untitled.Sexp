@@ -11,17 +11,17 @@ namespace Untitled.Sexp
     /// </summary>
     public sealed class SexpTextReader
     {
-        private TextReader _reader;
+        private readonly TextReader _reader;
 
         private int? _ungotten; // allow one step unget
 
         private int _prevLineLength;
 
-        private char[] _charBuffer = new char[128];
+        private readonly char[] _charBuffer = new char[128];
 
-        private char[] _escapeBuffer = new char[2];
+        private readonly char[] _escapeBuffer = new char[2];
 
-        private byte[] _byteBuffer = new byte[128];
+        private readonly byte[] _byteBuffer = new byte[128];
 
         /// <summary>
         /// Get current line number of the reader.
@@ -48,7 +48,7 @@ namespace Untitled.Sexp
         }
 
         /// <summary>
-        /// Intialize reader with a base text-reader (non-own) and settings.
+        /// Initialize reader with a base text-reader (non-own) and settings.
         /// </summary>
         public SexpTextReader(TextReader reader, SexpTextReaderSettings settings)
         {
@@ -63,8 +63,7 @@ namespace Untitled.Sexp
 
         private int Peek()
         {
-            if (_ungotten != null) return _ungotten.Value;
-            return _reader.Peek();
+            return _ungotten ?? _reader.Peek();
         }
 
         private int GetCh()
@@ -76,21 +75,21 @@ namespace Untitled.Sexp
                 _ungotten = null;
             }
             else read = _reader.Read();
-            if (read >= 0)
+
+            if (read < 0) return read;
+            
+            if (read == '\r' && Peek() == '\n') // crlf: increase line number at lf.
             {
-                if (read == '\r' && Peek() == '\n') // crlf: increase line number at lf.
-                {
-                }
-                else if (IsLineEnd(read))
-                {
-                    ++LineNumber;
-                    _prevLineLength = LinePosition;
-                    LinePosition = 0;
-                }
-                else if (!IsHighSurrogate(read)) // only increase line position after full surrogate pair
-                {
-                    ++LinePosition;
-                }
+            }
+            else if (IsLineEnd(read))
+            {
+                ++LineNumber;
+                _prevLineLength = LinePosition;
+                LinePosition = 0;
+            }
+            else if (!IsHighSurrogate(read)) // only increase line position after full surrogate pair
+            {
+                ++LinePosition;
             }
             return read;
         }
@@ -128,10 +127,10 @@ namespace Untitled.Sexp
             {
                 if (isU && !Settings.AllowUInEscaping) throw MakeError($"\\{ch} is not allowed");
                 var max = ch == 'u' ? 4 : 8;
-                int n = 0;
-                for (int i = 0; i < max; ++i)
+                var n = 0;
+                for (var i = 0; i < max; ++i)
                 {
-                    int next = Peek();
+                    var next = Peek();
                     if (next > 0 && IsHexDigit(next))
                     {
                         GetCh();
@@ -147,17 +146,14 @@ namespace Untitled.Sexp
                 }
                 if (n >= 0x10000)
                 {
-                    int high, low;
-                    DispartSurrogate(n, out high, out low);
+                    DispartSurrogate(n, out var high, out var low);
                     _escapeBuffer[0] = (char)high;
                     _escapeBuffer[1] = (char)low;
                     return 2;
                 }
-                else
-                {
-                    _escapeBuffer[0] = (char)n;
-                    return 1;
-                }
+
+                _escapeBuffer[0] = (char)n;
+                return 1;
             }
             if (ch == '\r' && Peek() == '\n')
             {
@@ -208,12 +204,9 @@ namespace Untitled.Sexp
                     _escapeBuffer[0] = '\n';
                     break;
                 default:
-                    if (isSymbol && (ch == '|' || char.IsWhiteSpace((char)ch))) // ch <= 0xFFFF
-                    {
-                        _escapeBuffer[0] = (char)ch;
-                        break;
-                    }
-                    throw MakeError($"Unknown escape {(char)ch}");
+                    if (!isSymbol || ch != '|' && !char.IsWhiteSpace(ch)) throw MakeError($"Unknown escape {ch}");
+                    _escapeBuffer[0] = ch;
+                    break;
             }
             return 1;
         }
@@ -260,15 +253,15 @@ namespace Untitled.Sexp
                         throw MakeError($"Unexpected closer: {(char)ch}");
 
                     case '(':
-                        return ReadList(')', ParentheseType.Parenthese, recursiveDepth);
+                        return ReadList(')', ParenthesesType.Parentheses, recursiveDepth);
 
                     case '[':
                         if (!Settings.AllowBracket) throw MakeError("[] is not allowed");
-                        return ReadList(']', ParentheseType.Bracket, recursiveDepth);
+                        return ReadList(']', ParenthesesType.Brackets, recursiveDepth);
 
                     case '{':
                         if (!Settings.AllowBrace) throw MakeError("{} is not allowed");
-                        return ReadList('}', ParentheseType.Brace, recursiveDepth);
+                        return ReadList('}', ParenthesesType.Braces, recursiveDepth);
 
                     case '|':
                         UngetCh(ch);
@@ -304,8 +297,8 @@ namespace Untitled.Sexp
                             {
                                 case '|': // "#|"
                                     {
-                                        int depth = 1;
-                                        int prevCh = 0;
+                                        var depth = 1;
+                                        var prevCh = 0;
                                         do
                                         {
                                             ch = GetCh();
@@ -374,13 +367,13 @@ namespace Untitled.Sexp
                                             switch (ch)
                                             {
                                                 case '(':
-                                                    return ReadByteVector(')', ParentheseType.Parenthese);
+                                                    return ReadByteVector(')', ParenthesesType.Parentheses);
                                                 case '[':
                                                     if (!Settings.AllowBracket) throw MakeError("[] is not allowed");
-                                                    return ReadByteVector(']', ParentheseType.Bracket);
+                                                    return ReadByteVector(']', ParenthesesType.Brackets);
                                                 case '{':
                                                     if (!Settings.AllowBrace) throw MakeError("{} is not allowed");
-                                                    return ReadByteVector('}', ParentheseType.Brace);
+                                                    return ReadByteVector('}', ParenthesesType.Braces);
                                             }
                                         }
                                         throw MakeError($"Unknown datum #u{(char)ch}");
@@ -402,7 +395,7 @@ namespace Untitled.Sexp
 
         private SValue ReadExpecting(string expecting, SValue result)
         {
-            for (int i = 1; i < expecting.Length; ++i)
+            for (var i = 1; i < expecting.Length; ++i)
             {
                 var ch = (char)GetCh();
                 if (ToLower(ch) != expecting[i]) throw MakeError($"Expecting \"{expecting}\", found 'ch' at position {i}");
@@ -426,12 +419,12 @@ namespace Untitled.Sexp
                 }
                 else if (ch == '#')
                 {
-                    int next = Peek();
+                    var next = Peek();
                     if (next == '|') // block
                     {
                         GetCh(); // eat '|'
-                        int depth = 1;
-                        int prevCh = 0;
+                        var depth = 1;
+                        var prevCh = 0;
                         do
                         {
                             ch = GetCh();
@@ -545,7 +538,7 @@ namespace Untitled.Sexp
         {
             int ch;
             var buffer = _charBuffer;
-            int i = 0;
+            var i = 0;
             while (!IsDelimiter(ch = GetCh()))
             {
                 if (i == buffer.Length) DoubleBuffer(ref buffer);
@@ -613,9 +606,9 @@ namespace Untitled.Sexp
                 {
                     throw MakeError($"#\\u is not allowed");
                 }
-                int n = 0;
-                int max = ch == 'u' ? 4 : 8;
-                for (int i = 0; i < max; ++i)
+                var n = 0;
+                var max = ch == 'u' ? 4 : 8;
+                for (var i = 0; i < max; ++i)
                 {
                     next = Peek();
                     if (next > 0 && IsHexDigit(next))
@@ -631,7 +624,7 @@ namespace Untitled.Sexp
             else if (IsAlphabet(ch) && IsAlphabet(next))
             {
                 _charBuffer[0] = ToLower((char)ch);
-                int i = 1;
+                var i = 1;
                 for (; i < _charBuffer.Length; ++i)
                 {
                     ch = Peek();
@@ -694,7 +687,7 @@ namespace Untitled.Sexp
         private SValue ReadString(int endCh, bool isBytes)
         {
             var buffer = _charBuffer;
-            int i = 0;
+            var i = 0;
             while (true)
             {
                 var ch = GetCh();
@@ -726,7 +719,7 @@ namespace Untitled.Sexp
             if (isBytes)
             {
                 var bytes = new byte[i];
-                for (int j = 0; j < i; ++j)
+                for (var j = 0; j < i; ++j)
                 {
                     if (buffer[j] > 0xFF) throw MakeError($"Byte out of range: {(int)buffer[j]:04X}");
                     bytes[j] = (byte)buffer[j];
@@ -776,8 +769,8 @@ namespace Untitled.Sexp
                 max = 3;
                 radix = 10;
             }
-            int i = 0;
-            int ch = 0;
+            var i = 0;
+            var ch = 0;
             while (i <= max)
             {
                 ch = GetCh();
@@ -800,10 +793,10 @@ namespace Untitled.Sexp
             return (byte)n;
         }
 
-        private SValue ReadByteVector(int endCh, ParentheseType parenthese)
+        private SValue ReadByteVector(int endCh, ParenthesesType parentheses)
         {
             var buffer = _byteBuffer;
-            int i = 0;
+            var i = 0;
             while (true)
             {
                 SkipWhitespaceAndComments();
@@ -826,10 +819,10 @@ namespace Untitled.Sexp
                 Array.Copy(buffer, newBuffer, i);
                 buffer = newBuffer;
             }
-            return new SValue(buffer, SValueType.Bytes, new BytesFormatting{ Parenthese = parenthese });
+            return new SValue(buffer, SValueType.Bytes, new BytesFormatting{ Parentheses = parentheses });
         }
         
-        private SValue ReadList(int endCh, ParentheseType parenthese, int recursiveDepth = 0)
+        private SValue ReadList(int endCh, ParenthesesType parentheses, int recursiveDepth = 0)
         {
             SkipWhitespaceAndComments();
             SPair? result = null;
@@ -842,7 +835,7 @@ namespace Untitled.Sexp
                 {
                     GetCh();
                     if (result == null) return SValue.Null;
-                    return new SValue(result, SValueType.Pair, new ListFormatting{ Parenthese = parenthese });
+                    return new SValue(result, SValueType.Pair, new ListFormatting{ Parentheses = parentheses });
                 }
                 if (ch == ')' || ch == ']' || ch == '}') throw MakeError($"Expecting closing {(char)endCh}, found {(char)ch} instead");
 

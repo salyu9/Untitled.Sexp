@@ -1,5 +1,3 @@
-using System;
-
 namespace Untitled.Sexp.Formatting
 {
     /// <summary>
@@ -10,12 +8,12 @@ namespace Untitled.Sexp.Formatting
         /// <summary>
         /// If true, use racket style byte string style, otherwise use R7RS byte vector style.
         /// </summary>
-        public bool ByteString { get; set; } = false;
+        public bool ByteString { get; set; }
 
         /// <summary>
-        /// When using byte vector style, specify the parenthese type.
+        /// When using byte vector style, specify the parentheses type.
         /// </summary>
-        public ParentheseType Parenthese { get; set; }
+        public ParenthesesType Parentheses { get; set; }
 
         /// <summary>
         /// When using byte vector style, specify the radix of each byte.

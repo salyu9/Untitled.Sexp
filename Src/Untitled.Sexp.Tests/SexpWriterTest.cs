@@ -150,8 +150,8 @@ namespace Untitled.Sexp.Tests
             var oct = new BytesFormatting { Radix = NumberRadix.Octal };
             var bin = new BytesFormatting { Radix = NumberRadix.Binary };
 
-            var bracket = new BytesFormatting { Parenthese = ParentheseType.Bracket };
-            var brace = new BytesFormatting { Parenthese = ParentheseType.Brace };
+            var bracket = new BytesFormatting { Parentheses = ParenthesesType.Brackets };
+            var brace = new BytesFormatting { Parentheses = ParenthesesType.Braces };
 
             var bytes = Encoding.UTF8.GetBytes("Untitled");
             //0x55, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x64, 0x2e, 0x53, 0x65, 0x78, 0x70
@@ -181,8 +181,8 @@ namespace Untitled.Sexp.Tests
         [Fact]
         public void WriteList()
         {
-            var bracket = new ListFormatting { Parenthese = ParentheseType.Bracket };
-            var brace = new ListFormatting { Parenthese = ParentheseType.Brace };
+            var bracket = new ListFormatting { Parentheses = ParenthesesType.Brackets };
+            var brace = new ListFormatting { Parentheses = ParenthesesType.Braces };
 
             var breakIndex = new ListFormatting { LineBreakIndex = 2, LineExtraSpaces = 5 };
 

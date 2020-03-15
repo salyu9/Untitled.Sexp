@@ -1,5 +1,3 @@
-using System;
-
 namespace Untitled.Sexp.Formatting
 {
     /// <summary>
@@ -8,9 +6,9 @@ namespace Untitled.Sexp.Formatting
     public sealed class ListFormatting : SValueFormatting
     {
         /// <summary>
-        /// Specify parenthese type.
+        /// Specify parentheses type.
         /// </summary>
-        public ParentheseType Parenthese { get; set; }
+        public ParenthesesType Parentheses { get; set; }
 
         /// <summary>
         /// Specify single line element count. <br />

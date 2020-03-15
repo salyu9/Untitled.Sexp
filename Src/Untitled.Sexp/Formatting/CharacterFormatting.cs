@@ -1,5 +1,3 @@
-using System;
-
 namespace Untitled.Sexp.Formatting
 {
     /// <summary>
@@ -10,7 +8,7 @@ namespace Untitled.Sexp.Formatting
         /// <summary>
         /// Whether to use ascii only. If true, all character larger than 127 will be escaped.
         /// </summary>
-        public bool AsciiOnly { get; set; } = false;
+        public bool AsciiOnly { get; set; }
 
         /// <summary>
         /// Specify how string will be escaped.
