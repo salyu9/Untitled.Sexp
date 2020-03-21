@@ -77,7 +77,7 @@ namespace Untitled.Sexp
             else read = _reader.Read();
 
             if (read < 0) return read;
-            
+
             if (read == '\r' && Peek() == '\n') // crlf: increase line number at lf.
             {
             }
@@ -325,9 +325,18 @@ namespace Untitled.Sexp
 
                                 case 't':
                                 case 'T':
-                                    if (IsDelimiter(Peek())) return SValue.True;
-                                    return ReadExpecting("true", SValue.True);
+                                {
 
+                                    var next = Peek();
+                                    if (IsDelimiter(next)) return SValue.True;
+                                    if (next == 'r' || next == 'R') return ReadExpecting("true", SValue.True);
+                                    if (next == 'y' || next == 'Y')
+                                    {
+                                        UngetCh(ch);
+                                        return ReadTypeIdentifier();
+                                    }
+                                    throw MakeError($"Unknown datum #{(char)ch}{(char)next}");
+                                }
                                 case 'f':
                                 case 'F':
                                     if (IsDelimiter(Peek())) return SValue.False;
@@ -393,15 +402,20 @@ namespace Untitled.Sexp
             }
         }
 
-        private SValue ReadExpecting(string expecting, SValue result)
+        private bool ReadExpecting(string expecting)
         {
             for (var i = 1; i < expecting.Length; ++i)
             {
                 var ch = (char)GetCh();
-                if (ToLower(ch) != expecting[i]) throw MakeError($"Expecting \"{expecting}\", found 'ch' at position {i}");
+                if (ToLower(ch) != expecting[i]) return false;
             }
-            if (!IsDelimiter(Peek())) throw MakeError($"Expecting delimiter after {expecting}");
-            return result;
+            return true;
+        }
+
+        private SValue ReadExpecting(string expecting, SValue result)
+        {
+            if (ReadExpecting(expecting) && IsDelimiter(Peek())) return result;
+            throw MakeError($"Expecting delimiter after {expecting}");
         }
 
         private void SkipWhitespaceAndComments()
@@ -462,16 +476,12 @@ namespace Untitled.Sexp
             UngetCh(ch);
         }
 
-        /// <summary>
-        /// Read a symbol or number. <br />
-        /// The number is not prefixed with '#', 
-        /// </summary>
-        private SValue ReadNumberOrSymbol()
+        private string ReadSymbolString(out bool isEscaped)
         {
             var ch = GetCh();
 
             var multipleEscaping = false;
-            var isSymbol = false;
+            isEscaped = false;
 
             var buffer = _charBuffer;
             var i = 0;
@@ -492,12 +502,12 @@ namespace Untitled.Sexp
                     {
                         buffer[i++] = _escapeBuffer[k];
                     }
-                    isSymbol = true;
+                    isEscaped = true;
                 }
                 else if (ch == '|') // multiple escape
                 {
                     multipleEscaping = !multipleEscaping;
-                    isSymbol = true;
+                    isEscaped = true;
                 }
                 else
                 {
@@ -509,29 +519,47 @@ namespace Untitled.Sexp
             if (multipleEscaping) throw MakeError($"Unbalanced | escaping");
             if (ch >= 0) UngetCh(ch);
 
-            var str = new string(buffer, 0, i);
+            return new string(buffer, 0, i);
+        }
 
-            if (isSymbol) // if contains escaping, must be symbol
+        /// <summary>
+        /// Read a symbol or number. <br />
+        /// The number is not prefixed with '#', 
+        /// </summary>
+        private SValue ReadNumberOrSymbol()
+        {
+            var str = ReadSymbolString(out var isEscaped);
+
+            var lower = str.ToLowerInvariant();
+            if (Settings.AcceptNull && StringEquals(lower, "null")) return SValue.Null;
+            if (Settings.AcceptNil && StringEquals(lower, "nil")) return SValue.Null; 
+
+            if (isEscaped) // if contains escaping, must be symbol
             {
-                return new SValue(SSymbol.FromString(str));
+                return new SValue(Symbol.FromString(str));
             }
 
-            if (i == 6)
+            if (lower.Length == 6)
             {
-                if (Utils.StringEquals(str, "+nan.0")) return new SValue(double.NaN);
-                if (Utils.StringEquals(str, "+inf.0")) return new SValue(double.PositiveInfinity);
-                if (Utils.StringEquals(str, "-nan.0")) return new SValue(-double.NaN);
-                if (Utils.StringEquals(str, "-inf.0")) return new SValue(double.NegativeInfinity);
+                if (StringEquals(lower, "+nan.0")) return new SValue(double.NaN);
+                if (StringEquals(lower, "+inf.0")) return new SValue(double.PositiveInfinity);
+                if (StringEquals(lower, "-nan.0")) return new SValue(double.NaN);
+                if (StringEquals(lower, "-inf.0")) return new SValue(double.NegativeInfinity);
             }
 
-            if (long.TryParse(str, out var longResult))
-            {
-                if (longResult > int.MaxValue || longResult < int.MinValue) return new SValue(longResult);
-                return new SValue((int)longResult);
-            }
+            if (long.TryParse(str, out var longResult)) return new SValue(longResult);
             if (double.TryParse(str, out var doubleResult)) return new SValue(doubleResult);
 
-            return new SValue(SSymbol.FromString(str));
+            return new SValue(Symbol.FromString(str));
+        }
+
+        private SValue ReadTypeIdentifier()
+        {
+            if (!ReadExpecting("#type:")) throw MakeError("Expecing \"#type:\"");
+
+            var str = ReadSymbolString(out var isEscaped);
+
+            return new SValue(TypeIdentifier.FromString(str));
         }
 
         private SValue ReadNumber(int radix, NumberRadix radixEnum)
@@ -545,12 +573,13 @@ namespace Untitled.Sexp
                 buffer[i++] = (char)ch;
             }
             var str = new string(buffer, 0, i);
+            var lower = str.ToLowerInvariant();
             if (i == 6)
             {
-                if (Utils.StringEquals(str, "+nan.0")) return new SValue(double.NaN);
-                if (Utils.StringEquals(str, "+inf.0")) return new SValue(double.PositiveInfinity);
-                if (Utils.StringEquals(str, "-nan.0")) return new SValue(-double.NaN);
-                if (Utils.StringEquals(str, "-inf.0")) return new SValue(double.NegativeInfinity);
+                if (StringEquals(lower, "+nan.0")) return new SValue(double.NaN);
+                if (StringEquals(lower, "+inf.0")) return new SValue(double.PositiveInfinity);
+                if (StringEquals(lower, "-nan.0")) return new SValue(-double.NaN);
+                if (StringEquals(lower, "-inf.0")) return new SValue(double.NegativeInfinity);
             }
             if (radix == 10)
             {
@@ -724,7 +753,7 @@ namespace Untitled.Sexp
                     if (buffer[j] > 0xFF) throw MakeError($"Byte out of range: {(int)buffer[j]:04X}");
                     bytes[j] = (byte)buffer[j];
                 }
-                return new SValue(bytes, SValueType.Bytes, new BytesFormatting{ ByteString = true });
+                return new SValue(bytes, SValueType.Bytes, new BytesFormatting { ByteString = true });
             }
 
             return new SValue(new string(buffer, 0, i));
@@ -819,14 +848,14 @@ namespace Untitled.Sexp
                 Array.Copy(buffer, newBuffer, i);
                 buffer = newBuffer;
             }
-            return new SValue(buffer, SValueType.Bytes, new BytesFormatting{ Parentheses = parentheses });
+            return new SValue(buffer, SValueType.Bytes, new BytesFormatting { Parentheses = parentheses });
         }
-        
+
         private SValue ReadList(int endCh, ParenthesesType parentheses, int recursiveDepth = 0)
         {
             SkipWhitespaceAndComments();
-            SPair? result = null;
-            SPair? current = null;
+            Pair? result = null;
+            Pair? current = null;
             while (true)
             {
                 var ch = Peek();
@@ -835,12 +864,12 @@ namespace Untitled.Sexp
                 {
                     GetCh();
                     if (result == null) return SValue.Null;
-                    return new SValue(result, SValueType.Pair, new ListFormatting{ Parentheses = parentheses });
+                    return new SValue(result, SValueType.Pair, new ListFormatting { Parentheses = parentheses });
                 }
                 if (ch == ')' || ch == ']' || ch == '}') throw MakeError($"Expecting closing {(char)endCh}, found {(char)ch} instead");
 
                 var car = ReadValue(recursiveDepth + 1);
-                var pair = new SPair(car, SValue.Null);
+                var pair = new Pair(car, SValue.Null);
 
                 if (result == null)
                 {

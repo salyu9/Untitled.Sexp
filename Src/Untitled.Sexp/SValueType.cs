@@ -50,5 +50,10 @@ namespace Untitled.Sexp
         /// Pair.
         /// </summary>
         Pair,
+
+        /// <summary>
+        /// Type-identifier. For serialization use.
+        /// </summary>
+        TypeIdentifier,
     }
 }

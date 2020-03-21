@@ -50,7 +50,7 @@ Single character, escaped and character name are allowed.
 
 ### Strings
 
-A string can contain escaping characters in the form R7RS specified, and if allowed, also in racket style (\u0000 and \U000000). The same goes for symbols.
+A string can contain escaping characters in the form R7RS specified, and if allowed, also in racket style (\u0000 and \U00000000). The same goes for symbols.
 
 ```scheme
 "This is a string."

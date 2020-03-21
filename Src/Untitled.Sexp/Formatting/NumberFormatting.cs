@@ -9,6 +9,12 @@ namespace Untitled.Sexp.Formatting
         /// The radix format of number.
         /// </summary>
         /// <value></value>
-        public NumberRadix Radix { get; set; }
+        public NumberRadix? Radix { get; set; }
+
+        internal override void MergeWith(SValueFormatting? other)
+        {
+            if (other == null) return;
+            Radix = ((NumberFormatting)other).Radix ?? Radix;
+        }
     }
 }

@@ -5,5 +5,6 @@ namespace Untitled.Sexp.Formatting
     /// </summary>
     public abstract class SValueFormatting
     {
+        internal abstract void MergeWith(SValueFormatting? other);
     }
 }

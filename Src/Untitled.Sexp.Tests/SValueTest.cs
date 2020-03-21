@@ -17,8 +17,8 @@ namespace Untitled.Sexp.Tests
             Assert.Equal(new SValue(10.0), (SValue)10.0, Comparer);
             Assert.Equal(new SValue('r'), (SValue)'r', Comparer);
             Assert.Equal(new SValue("test"), (SValue)"test", Comparer);
-            Assert.Equal(new SValue(SSymbol.FromString("test")), SSymbol.FromString("test"), Comparer);
-            Assert.Equal(new SValue(1, 2), new SPair(1, 2), Comparer);
+            Assert.Equal(new SValue(Symbol.FromString("test")), Symbol.FromString("test"), Comparer);
+            Assert.Equal(new SValue(1, 2), new Pair(1, 2), Comparer);
         }
 
         [Fact]
@@ -33,8 +33,8 @@ namespace Untitled.Sexp.Tests
             Assert.Equal(10, (int)new SValue(10.0));
             Assert.Equal('r', (char)new SValue('r'));
             Assert.Equal("test", (string)new SValue("test"));
-            Assert.Equal(SSymbol.FromString("test"), (SSymbol)new SValue(SSymbol.FromString("test")));
-            Assert.Equal(new SPair(1, 2), (SPair)new SValue(1, 2), Comparer);
+            Assert.Equal(Symbol.FromString("test"), (Symbol)new SValue(Symbol.FromString("test")));
+            Assert.Equal(new Pair(1, 2), (Pair)new SValue(1, 2), Comparer);
             Assert.Equal(new byte[]{ 0x30, 0x4A }, (byte[])new SValue(new byte[]{ 0x30, 0x4A }));
         }
 
@@ -49,8 +49,8 @@ namespace Untitled.Sexp.Tests
             Assert.Equal(10.0, new SValue(10.0).Cast<double>());
             Assert.Equal('r', new SValue('r').Cast<char>());
             Assert.Equal("test", new SValue("test").Cast<string>());
-            Assert.Equal(SSymbol.FromString("test"), new SValue(SSymbol.FromString("test")).Cast<SSymbol>());
-            Assert.Equal(new SPair(1, 2), new SValue(1, 2).Cast<SPair>(), Comparer);
+            Assert.Equal(Symbol.FromString("test"), new SValue(Symbol.FromString("test")).Cast<Symbol>());
+            Assert.Equal(new Pair(1, 2), new SValue(1, 2).Cast<Pair>(), Comparer);
             Assert.Equal(new byte[]{ 0x30, 0x4A }, new SValue(new byte[]{ 0x30, 0x4A }).Cast<byte[]>());
 
             Assert.Equal(new []{ 5, 6, 3 }, SValue.List(5, 6, 3).ToList<int>());

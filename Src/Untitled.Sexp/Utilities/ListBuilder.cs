@@ -10,9 +10,9 @@ namespace Untitled.Sexp.Utilities
     /// </summary>
     public sealed class ListBuilder : IEnumerable<SValue>
     {
-        private SPair _root;
+        private Pair _root;
 
-        private SPair _current;
+        private Pair _current;
 
         private ListFormatting? _formatting;
 
@@ -23,7 +23,7 @@ namespace Untitled.Sexp.Utilities
         /// </summary>
         public ListBuilder(ListFormatting? formatting = null)
         {
-            _root = new SPair(SValue.Null, SValue.Null);
+            _root = new Pair(SValue.Null, SValue.Null);
             _current = _root;
             _formatting = formatting;
             _version = 0;
@@ -43,7 +43,7 @@ namespace Untitled.Sexp.Utilities
         /// </summary>
         public void Reset()
         {
-            _root = new SPair(SValue.Null, SValue.Null);
+            _root = new Pair(SValue.Null, SValue.Null);
             _current = _root;
             ++_version;
         }
@@ -54,7 +54,7 @@ namespace Untitled.Sexp.Utilities
         /// /// <param name="value">Sexp value to append.</param>
         public ListBuilder Add(SValue value)
         {
-            var pair = new SPair(value, SValue.Null);
+            var pair = new Pair(value, SValue.Null);
             _current._cdr = pair;
             _current = pair;
             ++_version;
@@ -74,7 +74,7 @@ namespace Untitled.Sexp.Utilities
         public struct Enumerator : IEnumerator<SValue>
         {
             private ListBuilder _builder;
-            private SPair _current;
+            private Pair _current;
             private int _version;
             internal Enumerator(ListBuilder builder)
             {
@@ -101,7 +101,7 @@ namespace Untitled.Sexp.Utilities
                 if (_version != _builder._version)
                     throw new InvalidOperationException("Collection was modified; enumeration operation may not execute.");
                 if (_current._cdr.IsNull) return false;
-                _current = (SPair)_current._cdr;
+                _current = (Pair)_current._cdr;
                 return true;
             }
 

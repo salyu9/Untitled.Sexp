@@ -50,6 +50,16 @@ namespace Untitled.Sexp.Tests
         }
 
         [Fact]
+        public void ReadNull()
+        {
+            Assert.Equal(SValue.Null, Read("null"), Comparer);
+            Assert.Equal(SValue.Null, Read("nil"), Comparer);
+
+            Assert.Equal(Symbol.FromString("null"), Read("null", new SexpTextReaderSettings { AcceptNull = false }), Comparer);
+            Assert.Equal(Symbol.FromString("nil"), Read("nil", new SexpTextReaderSettings { AcceptNil = false }), Comparer);
+        }
+
+        [Fact]
         public void ReadBoolean()
         {
             Assert.Equal(True, Read(@"#t"), Comparer);
@@ -80,7 +90,7 @@ namespace Untitled.Sexp.Tests
         }
 
         [Fact]
-        public void ReadSymbolOrNumber()
+        public void ReadNumberOrSymbol()
         {
             Assert.Equal(Symbol("..."), Read("..."), Comparer);
             Assert.Equal(Symbol("+"), Read("+"), Comparer);

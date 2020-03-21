@@ -5,7 +5,7 @@ namespace Untitled.Sexp
     /// <summary>
     /// Represent an sexp pair.
     /// </summary>
-    public sealed class SPair : IEquatable<SPair>
+    public sealed class Pair : IEquatable<Pair>
     {
         internal SValue _car;
         internal SValue _cdr;
@@ -13,7 +13,7 @@ namespace Untitled.Sexp
         /// <summary>
         /// Instantiate new instance of SPair with car and cdr.
         /// </summary>
-        public SPair(SValue car, SValue cdr)
+        public Pair(SValue car, SValue cdr)
         {
             _car = car;
             _cdr = cdr;
@@ -41,7 +41,7 @@ namespace Untitled.Sexp
             => _cdr;
 
         /// <summary />
-        public bool Equals(SPair other)
+        public bool Equals(Pair other)
         {
             return ReferenceEquals(this, other)
                 || (_car.Equals(other._car) && _cdr.Equals(other._cdr));
@@ -50,7 +50,7 @@ namespace Untitled.Sexp
         /// <summary />
         public override bool Equals(object obj)
         {
-            return obj is SPair spair && Equals(spair);
+            return obj is Pair spair && Equals(spair);
         }
 
         /// <summary />

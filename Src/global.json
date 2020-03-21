@@ -1,0 +1,9 @@
+{
+    "projects": [
+        "src"
+    ],
+    "sdk": {
+        "version": "3.0.101",
+        "rollForward": "latestMajor"
+    }
+}

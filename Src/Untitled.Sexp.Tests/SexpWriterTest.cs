@@ -37,10 +37,13 @@ namespace Untitled.Sexp.Tests
         public void WriterSettings()
         {
             Assert.Equal("()", Write(Null));
-            Assert.Equal("null", Write(Null, new SexpTextWriterSettings { NullAsList = false }));
+            Assert.Equal("null", Write(Null, new SexpTextWriterSettings { NullLiteral = NullLiteralType.Null }));
+            Assert.Equal("nil", Write(Null, new SexpTextWriterSettings { NullLiteral = NullLiteralType.Nil }));
 
 
-            Assert.Equal("() ()", WriteAll(new SexpTextWriterSettings { NewLineAsSeparator = false }, Null, Null));
+            Assert.Equal("() ()", WriteAll(new SexpTextWriterSettings { SeparatorType = WriterSeparatorType.Space }, Null, Null));
+            Assert.Equal("()\n\n()", WriteAll(new SexpTextWriterSettings { SeparatorType = WriterSeparatorType.DoubleNewline }, Null, Null));
+            Assert.Equal("()I-am-separator()", WriteAll(new SexpTextWriterSettings { SeparatorType = WriterSeparatorType.Custom, CustomSeparator = "I-am-separator" }, Null, Null));
             Assert.Equal("()\n()", WriteAll(Null, Null));
         }
 
@@ -112,7 +115,7 @@ namespace Untitled.Sexp.Tests
             Assert.Equal(@"|\u30c6\u30b9\u30c8|", Write(Symbol("テスト", asciiUStyle)));
             Assert.Equal(@"𪚥", Write(Symbol(@"𪚥")));
             Assert.Equal(@"|\x2a6a5;|", Write(Symbol(@"𪚥", ascii)));
-            Assert.Equal(@"|\U02a6a5|", Write(Symbol(@"𪚥", asciiUStyle)));
+            Assert.Equal(@"|\U0002a6a5|", Write(Symbol(@"𪚥", asciiUStyle)));
         }
 
         [Fact]
@@ -132,7 +135,7 @@ namespace Untitled.Sexp.Tests
             Assert.Equal(@"""\u30c6\u30b9\u30c8""", Write(new SValue("テスト", asciiUStyle)));
             Assert.Equal(@"""𪚥""", Write("𪚥"));
             Assert.Equal(@"""\x2a6a5;""", Write(new SValue("𪚥", ascii)));
-            Assert.Equal(@"""\U02a6a5""", Write(new SValue("𪚥", asciiUStyle)));
+            Assert.Equal(@"""\U0002a6a5""", Write(new SValue("𪚥", asciiUStyle)));
             Assert.Equal(@"""The word \""recursion\"" has many meanings.""", Write("The word \"recursion\" has many meanings."));
             Assert.Equal(@"""Here's text \r\ncontaining just one line""", Write("Here's text \r\ncontaining just one line"));
             Assert.Equal(@"""Here's text \ncontaining just one line""", Write("Here's text \ncontaining just one line"));

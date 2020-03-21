@@ -8,6 +8,12 @@ namespace Untitled.Sexp.Formatting
         /// <summary>
         /// Whether use long form. If true, bools will be written as #true/#false, otherwise #t/#f.
         /// </summary>
-        public bool LongForm { get; set; }
+        public bool? LongForm { get; set; }
+
+        internal override void MergeWith(SValueFormatting? other)
+        {
+            if (other == null) return;
+            LongForm = ((BooleanFormatting)other).LongForm ?? LongForm;
+        }
     }
 }

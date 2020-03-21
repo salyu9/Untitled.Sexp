@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -55,6 +56,28 @@ namespace Untitled.Sexp
                 && cat != UnicodeCategory.OtherNotAssigned;
         }
 
+        private static char GetOpeningChar(ParenthesesType parentheses)
+        {
+            return parentheses switch
+            {
+                ParenthesesType.Parentheses => '(',
+                ParenthesesType.Brackets => '[',
+                ParenthesesType.Braces => '{',
+                _ => throw CreateInvalidEnumException(nameof(parentheses), parentheses)
+            };
+        }
+
+        private static char GetClosingChar(ParenthesesType parentheses)
+        {
+            return parentheses switch
+            {
+                ParenthesesType.Parentheses => ')',
+                ParenthesesType.Brackets => ']',
+                ParenthesesType.Braces => '}',
+                _ => throw CreateInvalidEnumException(nameof(parentheses), parentheses)
+            };
+        }
+
         private SexpWriterException MakeError(string message, Exception? inner = null)
         {
             return inner == null ? new SexpWriterException(message, this) : new SexpWriterException(message, this, inner);
@@ -66,13 +89,13 @@ namespace Untitled.Sexp
 
         private bool _needSeparator = false;
 
-        private void WriteFinal(char c)
+        private void Put(char c)
         {
             _writer.Write(c);
             ++_linePosition;
         }
 
-        private void WriteFinal(string s)
+        private void Put(string s)
         {
             System.Diagnostics.Debug.Assert(s.All(c => IsPrintable(c)));
             int n = 0;
@@ -84,7 +107,7 @@ namespace Untitled.Sexp
             _linePosition += s.Length - n;
         }
 
-        private void WriteLine()
+        private void PutNewLine()
         {
             _writer.WriteLine();
             _linePosition = 0;
@@ -95,65 +118,65 @@ namespace Untitled.Sexp
             switch (ch)
             {
                 case 0x70:
-                    WriteFinal(@"\a"); // alarm
+                    Put(@"\a"); // alarm
                     break;
                 case '\b':
-                    WriteFinal(@"\b");
+                    Put(@"\b");
                     break;
                 case 0x1B:
-                    WriteFinal(@"\e"); // escape
+                    Put(@"\e"); // escape
                     break;
                 case '\f':
-                    WriteFinal(@"\f");
+                    Put(@"\f");
                     break;
                 case '\n':
-                    WriteFinal(@"\n");
+                    Put(@"\n");
                     break;
                 case '\r':
-                    WriteFinal(@"\r");
+                    Put(@"\r");
                     break;
                 case '\t':
-                    WriteFinal(@"\t");
+                    Put(@"\t");
                     break;
                 case '\v':
-                    WriteFinal(@"\v");
+                    Put(@"\v");
                     break;
                 case '\"':
-                    WriteFinal("\\\"");
+                    Put("\\\"");
                     break;
                 case '\'':
-                    WriteFinal("\\\'");
+                    Put("\\\'");
                     break;
                 case '\\':
-                    WriteFinal(@"\\");
+                    Put(@"\\");
                     break;
                 default:
                     if (isSymbol && (ch == '|'))
                     {
-                        WriteFinal('\\');
-                        WriteFinal((char)ch);
+                        Put('\\');
+                        Put((char)ch);
                     }
                     else
                     {
-                        WriteFinal('\\');
+                        Put('\\');
                         if (uStyle)
                         {
                             if (ch >= 0x10000)
                             {
-                                WriteFinal('U');
-                                WriteFinal(ch.ToString("x06"));
+                                Put('U');
+                                Put(ch.ToString("x08"));
                             }
                             else
                             {
-                                WriteFinal('u');
-                                WriteFinal(ch.ToString("x04"));
+                                Put('u');
+                                Put(ch.ToString("x04"));
                             }
                         }
                         else
                         {
-                            WriteFinal('x');
-                            WriteFinal(ch.ToString("x"));
-                            WriteFinal(';');
+                            Put('x');
+                            Put(ch.ToString("x"));
+                            Put(';');
                         }
                     }
                     break;
@@ -169,24 +192,58 @@ namespace Untitled.Sexp
         /// <summary>
         /// Initialize new instance of <see cref="SexpTextWriter" />.
         /// </summary>
-        public SexpTextWriter(TextWriter writer, SexpTextWriterSettings? settings = null)
+        public SexpTextWriter(TextWriter writer)
         {
             _writer = writer;
-            Settings = settings ?? SexpTextWriterSettings.Default;
+            Settings = new SexpTextWriterSettings();
+        }
+
+        /// <summary>
+        /// Initialize new instance of <see cref="SexpTextWriter" />.
+        /// </summary>
+        public SexpTextWriter(TextWriter writer, SexpTextWriterSettings settings)
+        {
+            _writer = writer;
+            Settings = new SexpTextWriterSettings(settings);
         }
 
         /// <summary>
         /// Write an sexp value to the writer.
         /// </summary>
         /// <param name="value">The sexp value to write.</param>
-        public void Write(SValue value)
+        /// <param name="formatting">Formatting for the sexp value.</param>
+        public void Write(SValue value, SValueFormatting? formatting = null)
         {
             if (_needSeparator)
             {
-                if (Settings.NewLineAsSeparator) WriteLine();
-                else WriteFinal(' ');
+                switch (Settings.SeparatorType)
+                {
+                    case WriterSeparatorType.Newline:
+                        {
+                            PutNewLine();
+                            break;
+                        }
+                    case WriterSeparatorType.DoubleNewline:
+                        {
+                            PutNewLine();
+                            PutNewLine();
+                            break;
+                        }
+                    case WriterSeparatorType.Space:
+                        {
+                            Put(' ');
+                            break;
+                        }
+                    case WriterSeparatorType.Custom:
+                        {
+                            Put(Settings.CustomSeparator);
+                            break;
+                        }
+                    default:
+                        throw new ArgumentException($"Invalid {nameof(WriterSeparatorType)}: {Settings.SeparatorType}");
+                }
             }
-            WriteValue(value);
+            WriteValue(value, formatting);
             _needSeparator = true;
         }
 
@@ -194,63 +251,80 @@ namespace Untitled.Sexp
         /// Write all sexp values to the writer.
         /// </summary>
         /// <param name="values">A collection of sexp values to write.</param>
-        /// <param name="extraNewline">Should an extra newline be appended after each value.</param>
-        public void WriteAll(IEnumerable<SValue> values, bool extraNewline = false)
+        public void WriteAll(IEnumerable<SValue> values)
         {
             foreach (var v in values)
             {
                 Write(v);
-                if (extraNewline) _writer.WriteLine();
             }
         }
 
-        private void WriteValue(SValue value, int depth = 0)
+        private static TFormatting GetFormatting<TFormatting>(SValue value, SValueFormatting? formatting, TFormatting defaultFormatting)
+            where TFormatting : SValueFormatting
+        {
+            if (formatting != null)
+            {
+                return (TFormatting)formatting;
+            }
+            return (TFormatting?)value.Formatting ?? defaultFormatting;
+        }
+
+        private void WriteValue(SValue value, SValueFormatting? formatting = null, int depth = 0)
         {
             switch (value.Type)
             {
                 case SValueType.Null:
                     {
-                        if (Settings.NullAsList) WriteFinal("()");
-                        else WriteFinal("null");
+                        Put(Settings.NullLiteral switch
+                        {
+                            NullLiteralType.EmptyList => "()",
+                            NullLiteralType.Null => "null",
+                            NullLiteralType.Nil => "nil",
+                            _ => throw CreateInvalidEnumException("Type", value.Type)
+                        });
                         return;
                     }
                 case SValueType.Boolean:
                     {
-                        WriteBoolean((bool)value._value, (BooleanFormatting?)value.Formatting ?? DefaultBooleanFormatting);
+                        WriteBoolean((bool)value._value, GetFormatting(value, formatting, DefaultBooleanFormatting));
                         return;
                     }
                 case SValueType.Number:
                     {
-                        var formatting = (NumberFormatting?)value.Formatting ?? DefaultNumberFormatting;
-                        if (value._value is int i) WriteInteger(i, formatting);
-                        else if (value._value is long l) WriteInteger(l, formatting);
-                        else if (value._value is double d) WriteDouble(d, formatting);
+                        var numFormatting = GetFormatting(value, formatting, DefaultNumberFormatting);
+                        if (value._value is long l) WriteInteger(l, numFormatting);
+                        else if (value._value is double d) WriteDouble(d, numFormatting);
                         else throw MakeError($"Number contains invalid data {value._value}");
                         return;
                     }
                 case SValueType.Char:
                     {
-                        WriteChar((int)value._value, (CharacterFormatting?)value.Formatting ?? DefaultCharacterFormatting);
+                        WriteChar((int)value._value, GetFormatting(value, formatting, DefaultCharacterFormatting));
                         return;
                     }
                 case SValueType.Symbol:
                     {
-                        WriteSymbol((SSymbol)value._value, (CharacterFormatting?)value.Formatting ?? DefaultCharacterFormatting);
+                        WriteSymbol((Symbol)value._value, GetFormatting(value, formatting, DefaultCharacterFormatting));
                         return;
                     }
                 case SValueType.String:
                     {
-                        WriteString((string)value._value, (CharacterFormatting?)value.Formatting ?? DefaultCharacterFormatting);
+                        WriteString((string)value._value, GetFormatting(value, formatting, DefaultCharacterFormatting));
                         return;
                     }
                 case SValueType.Bytes:
                     {
-                        WriteBytes((byte[])value._value, (BytesFormatting?)value.Formatting ?? DefaultBytesFormatting);
+                        WriteBytes((byte[])value._value, GetFormatting(value, formatting, DefaultBytesFormatting));
                         return;
                     }
                 case SValueType.Pair:
                     {
-                        WritePair((SPair)value._value, (ListFormatting?)value.Formatting ?? DefaultListFormatting, depth);
+                        WritePair((Pair)value._value, GetFormatting(value, formatting, DefaultListFormatting), depth);
+                        return;
+                    }
+                case SValueType.TypeIdentifier:
+                    {
+                        WriteTypeIdentifier((TypeIdentifier)value._value, GetFormatting(value, formatting, DefaultCharacterFormatting));
                         return;
                     }
                 default:
@@ -258,47 +332,47 @@ namespace Untitled.Sexp
             }
         }
 
-        private void WriteIndent(int count)
+        private void PutIndent(int count)
         {
-            while (count-- > 0) WriteFinal(' ');
+            while (count-- > 0) Put(' ');
         }
 
         private void WriteBoolean(bool value, BooleanFormatting formatting)
         {
-            if (formatting.LongForm)
+            if (formatting.LongForm == true)
             {
-                if (value) WriteFinal("#true");
-                else WriteFinal("#false");
+                if (value) Put("#true");
+                else Put("#false");
             }
             else
             {
-                if (value) WriteFinal("#t");
-                else WriteFinal("#f");
+                if (value) Put("#t");
+                else Put("#f");
             }
         }
 
         private void WriteInteger(long n, NumberFormatting formatting)
         {
-            switch (formatting.Radix)
+            switch (formatting.Radix ?? default)
             {
                 case NumberRadix.Decimal:
-                    WriteFinal(n.ToString());
+                    Put(n.ToString());
                     return;
                 case NumberRadix.PrefixedDecimal:
-                    WriteFinal("#d");
-                    WriteFinal(n.ToString());
+                    Put("#d");
+                    Put(n.ToString());
                     return;
                 case NumberRadix.Hexadecimal:
-                    WriteFinal("#x");
-                    WriteFinal(Convert.ToString(n, 16));
+                    Put("#x");
+                    Put(Convert.ToString(n, 16));
                     return;
                 case NumberRadix.Octal:
-                    WriteFinal("#o");
-                    WriteFinal(Convert.ToString(n, 8));
+                    Put("#o");
+                    Put(Convert.ToString(n, 8));
                     return;
                 case NumberRadix.Binary:
-                    WriteFinal("#b");
-                    WriteFinal(Convert.ToString(n, 2));
+                    Put("#b");
+                    Put(Convert.ToString(n, 2));
                     return;
                 default:
                     throw MakeError($"Invalid number radix {formatting.Radix}");
@@ -307,7 +381,7 @@ namespace Untitled.Sexp
 
         private void WriteDouble(double d, NumberFormatting formatting)
         {
-            var radix = formatting.Radix;
+            var radix = formatting.Radix ?? default;
             if (radix != NumberRadix.Decimal
                 && radix != NumberRadix.PrefixedDecimal
                 && !double.IsNaN(d) && !double.IsInfinity(d))
@@ -318,23 +392,23 @@ namespace Untitled.Sexp
             switch (radix)
             {
                 case NumberRadix.PrefixedDecimal:
-                    WriteFinal("#d");
+                    Put("#d");
                     break;
                 case NumberRadix.Hexadecimal:
-                    WriteFinal("#x");
+                    Put("#x");
                     break;
                 case NumberRadix.Octal:
-                    WriteFinal("#o");
+                    Put("#o");
                     break;
                 case NumberRadix.Binary:
-                    WriteFinal("#b");
+                    Put("#b");
                     break;
             }
 
-            if (double.IsNaN(d)) WriteFinal("+nan.0");
-            else if (double.IsPositiveInfinity(d)) WriteFinal("+inf.0");
-            else if (double.IsNegativeInfinity(d)) WriteFinal("-inf.0");
-            else WriteFinal(d.ToString());
+            if (double.IsNaN(d)) Put("+nan.0");
+            else if (double.IsPositiveInfinity(d)) Put("+inf.0");
+            else if (double.IsNegativeInfinity(d)) Put("-inf.0");
+            else Put(d.ToString());
         }
 
         private void WriteChar(int ch, CharacterFormatting formatting)
@@ -342,52 +416,52 @@ namespace Untitled.Sexp
             switch (ch)
             {
                 case 0x07:
-                    WriteFinal(@"#\alarm");
+                    Put(@"#\alarm");
                     return;
                 case '\b':
-                    WriteFinal(@"#\backspace");
+                    Put(@"#\backspace");
                     return;
                 case 0x7F:
-                    WriteFinal(@"#\delete");
+                    Put(@"#\delete");
                     return;
                 case 0x1B:
-                    WriteFinal(@"#\escape");
+                    Put(@"#\escape");
                     return;
                 case '\f':
-                    WriteFinal(@"#\formfeed");
+                    Put(@"#\formfeed");
                     return;
                 case '\n':
-                    WriteFinal(@"#\linefeed");
+                    Put(@"#\linefeed");
                     return;
                 case '\0':
-                    WriteFinal(@"#\null");
+                    Put(@"#\null");
                     return;
                 case '\r':
-                    WriteFinal(@"#\return");
+                    Put(@"#\return");
                     return;
                 case ' ':
-                    WriteFinal(@"#\space");
+                    Put(@"#\space");
                     return;
                 case '\t':
-                    WriteFinal(@"#\tab");
+                    Put(@"#\tab");
                     return;
                 case '\v':
-                    WriteFinal(@"#\vtab");
+                    Put(@"#\vtab");
                     return;
             }
 
-            var shouldEscape = (formatting.AsciiOnly && ch > 0x7e)
+            var shouldEscape = (formatting.AsciiOnly == true && ch > 0x7e)
                 || !IsPrintable(ch);
 
             if (!shouldEscape)
             {
-                WriteFinal(@"#\");
-                if (ch <= 0xFFFF) WriteFinal((char)ch);
+                Put(@"#\");
+                if (ch <= 0xFFFF) Put((char)ch);
                 else
                 {
                     DispartSurrogateToBuffer(ch, _surrogateBuffer);
-                    WriteFinal(_surrogateBuffer[0]);
-                    WriteFinal(_surrogateBuffer[1]);
+                    Put(_surrogateBuffer[0]);
+                    Put(_surrogateBuffer[1]);
                 }
                 return;
             }
@@ -396,28 +470,28 @@ namespace Untitled.Sexp
             {
                 if (ch <= 0xFFFF)
                 {
-                    WriteFinal(@"#\u");
-                    WriteFinal(ch.ToString("x04"));
+                    Put(@"#\u");
+                    Put(ch.ToString("x04"));
                 }
                 else
                 {
-                    WriteFinal(@"#\U");
-                    WriteFinal(ch.ToString("x06"));
+                    Put(@"#\U");
+                    Put(ch.ToString("x06"));
                 }
             }
             else
             {
-                WriteFinal(@"#\x");
-                WriteFinal(ch.ToString("x"));
+                Put(@"#\x");
+                Put(ch.ToString("x"));
             }
         }
 
-        private void WriteSymbol(SSymbol value, CharacterFormatting characterFormatting)
+        private void WriteSymbol(Symbol value, CharacterFormatting characterFormatting)
         {
             var name = value.Name;
             var shouldEscape = name.Length == 0;
 
-            var asciiOnly = characterFormatting.AsciiOnly;
+            var asciiOnly = characterFormatting.AsciiOnly ?? false;
             var uStyleEscape = characterFormatting.Escaping == EscapingStyle.UStyle;
 
             if (!shouldEscape)
@@ -434,7 +508,7 @@ namespace Untitled.Sexp
 
             if (shouldEscape)
             {
-                WriteFinal('|');
+                Put('|');
                 foreach (var scalar in EnumerateScalarValues(name))
                 {
                     if ((asciiOnly && (scalar < 0x20 || scalar > 0x7e)) || scalar == '|' || scalar == '\\' || !IsPrintable(scalar))
@@ -444,28 +518,34 @@ namespace Untitled.Sexp
                     else if (scalar >= 0x10000)
                     {
                         DispartSurrogateToBuffer(scalar, _surrogateBuffer);
-                        WriteFinal(_surrogateBuffer[0]);
-                        WriteFinal(_surrogateBuffer[1]);
+                        Put(_surrogateBuffer[0]);
+                        Put(_surrogateBuffer[1]);
                     }
                     else
                     {
-                        WriteFinal((char)scalar);
+                        Put((char)scalar);
                     }
                 }
-                WriteFinal('|');
+                Put('|');
             }
             else
             {
-                WriteFinal(name);
+                Put(name);
             }
+        }
+
+        private void WriteTypeIdentifier(TypeIdentifier value, CharacterFormatting characterFormatting)
+        {
+            Put("#type:");
+            WriteSymbol(value._symbol, characterFormatting);
         }
 
         private void WriteString(string value, CharacterFormatting characterFormatting)
         {
-            var asciiOnly = characterFormatting.AsciiOnly;
+            var asciiOnly = characterFormatting.AsciiOnly ?? false;
             var uStyleEscape = characterFormatting.Escaping == EscapingStyle.UStyle;
 
-            WriteFinal('"');
+            Put('"');
             foreach (var scalar in EnumerateScalarValues(value))
             {
                 if ((asciiOnly && (scalar < 0x20 || scalar > 0x7e)) || scalar == '"' || !IsPrintable(scalar))
@@ -475,15 +555,15 @@ namespace Untitled.Sexp
                 else if (scalar >= 0x10000)
                 {
                     DispartSurrogateToBuffer(scalar, _surrogateBuffer);
-                    WriteFinal(_surrogateBuffer[0]);
-                    WriteFinal(_surrogateBuffer[1]);
+                    Put(_surrogateBuffer[0]);
+                    Put(_surrogateBuffer[1]);
                 }
                 else
                 {
-                    WriteFinal((char)scalar);
+                    Put((char)scalar);
                 }
             }
-            WriteFinal('"');
+            Put('"');
         }
 
         private void WriteByte(byte b, NumberRadix radix)
@@ -491,23 +571,23 @@ namespace Untitled.Sexp
             switch (radix)
             {
                 case NumberRadix.Decimal:
-                    WriteFinal(b.ToString());
+                    Put(b.ToString());
                     break;
                 case NumberRadix.PrefixedDecimal:
-                    WriteFinal("#d");
-                    WriteFinal(b.ToString());
+                    Put("#d");
+                    Put(b.ToString());
                     break;
                 case NumberRadix.Hexadecimal:
-                    WriteFinal("#x");
-                    WriteFinal(Convert.ToString(b, 16));
+                    Put("#x");
+                    Put(Convert.ToString(b, 16));
                     break;
                 case NumberRadix.Octal:
-                    WriteFinal("#o");
-                    WriteFinal(Convert.ToString(b, 8));
+                    Put("#o");
+                    Put(Convert.ToString(b, 8));
                     break;
                 case NumberRadix.Binary:
-                    WriteFinal("#b");
-                    WriteFinal(Convert.ToString(b, 2));
+                    Put("#b");
+                    Put(Convert.ToString(b, 2));
                     break;
                 default:
                     throw new ArgumentException($"Invalid {nameof(NumberRadix)}: {radix}");
@@ -516,10 +596,10 @@ namespace Untitled.Sexp
 
         private void WriteBytes(byte[] value, BytesFormatting bytesFormatting)
         {
-            if (bytesFormatting.ByteString)
+            if (bytesFormatting.ByteString == true)
             {
-                WriteFinal('#');
-                WriteFinal('"');
+                Put('#');
+                Put('"');
                 foreach (var b in value)
                 {
                     if (b == '"' || (b < 0x20 || b > 0x7e))
@@ -528,31 +608,24 @@ namespace Untitled.Sexp
                     }
                     else
                     {
-                        WriteFinal((char)b);
+                        Put((char)b);
                     }
                 }
-                WriteFinal('"');
+                Put('"');
             }
             else
             {
-                var parenthese = bytesFormatting.Parentheses;
-                WriteFinal("#u8");
-                WriteFinal(parenthese switch
-                {
-                    ParenthesesType.Parentheses => '(',
-                    ParenthesesType.Brackets => '[',
-                    ParenthesesType.Braces => '{',
-                    _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
-                });
+                Put("#u8");
+                Put(GetOpeningChar(bytesFormatting.Parentheses ?? default));
 
-                var limit = bytesFormatting.LineLimit;
-                var radix = bytesFormatting.Radix;
+                var limit = bytesFormatting.LineLimit ?? 0;
+                var radix = bytesFormatting.Radix ?? default;
                 var i = 0;
-                if (limit == 0)
+                if (limit <= 0)
                 {
                     foreach (var b in value)
                     {
-                        if (i != 0) WriteFinal(' ');
+                        if (i != 0) Put(' ');
                         WriteByte(b, radix);
                         ++i;
                     }
@@ -566,55 +639,58 @@ namespace Untitled.Sexp
                         {
                             if (i % limit == 0)
                             {
-                                WriteLine();
-                                WriteIndent(l);
+                                PutNewLine();
+                                PutIndent(l);
                             }
-                            else WriteFinal(' ');
+                            else Put(' ');
                         }
                         WriteByte(b, radix);
                         ++i;
                     }
                 }
 
-                WriteFinal(parenthese switch
-                {
-                    ParenthesesType.Parentheses => ')',
-                    ParenthesesType.Brackets => ']',
-                    ParenthesesType.Braces => '}',
-                    _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
-                });
+                Put(GetClosingChar(bytesFormatting.Parentheses ?? default));
             }
         }
 
-        private void WritePair(SPair pair, ListFormatting listFormatting, int depth)
+        private void WritePair(Pair pair, ListFormatting listFormatting, int depth)
         {
-            var l = _linePosition + listFormatting.LineExtraSpaces;
+            var l = _linePosition + (listFormatting.LineExtraSpaces ?? 1);
 
-            var parenthese = listFormatting.Parentheses;
-            WriteFinal(parenthese switch
-            {
-                ParenthesesType.Parentheses => '(',
-                ParenthesesType.Brackets => '[',
-                ParenthesesType.Braces => '{',
-                _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
-            });
+            Put(GetOpeningChar(listFormatting.Parentheses ?? default));
 
             var i = 0;
             var breakIndex = listFormatting.LineBreakIndex;
+            var lineElemsCount = listFormatting.LineElemsCount;
             SValue current = pair;
             while (current.IsPair)
             {
-                var currentPair = (SPair)current._value;
-                if (i >= breakIndex)
+                var currentPair = (Pair)current._value;
+                if (i > 0)
                 {
-                    WriteLine();
-                    WriteIndent(l);
+                    if (lineElemsCount != null)
+                    {
+                        if (i % lineElemsCount == 0)
+                        {
+                            PutNewLine();
+                            PutIndent(l);
+                        }
+                        else
+                        {
+                            Put(' ');
+                        }
+                    }
+                    else if (breakIndex != null && i >= breakIndex)
+                    {
+                        PutNewLine();
+                        PutIndent(l);
+                    }
+                    else
+                    {
+                        Put(' ');
+                    }
                 }
-                else if (i > 0)
-                {
-                    WriteFinal(' ');
-                }
-                WriteValue(currentPair._car, depth + 1);
+                WriteValue(currentPair._car, depth: depth + 1);
                 current = currentPair._cdr;
                 ++i;
             }
@@ -623,26 +699,20 @@ namespace Untitled.Sexp
             {
                 if (i > breakIndex)
                 {
-                    WriteLine();
-                    WriteIndent(l);
-                    WriteFinal('.');
-                    WriteLine();
-                    WriteIndent(l);
+                    PutNewLine();
+                    PutIndent(l);
+                    Put('.');
+                    PutNewLine();
+                    PutIndent(l);
                 }
                 else
                 {
-                    WriteFinal(" . ");
+                    Put(" . ");
                 }
-                WriteValue(current, depth + 1);
+                WriteValue(current, depth: depth + 1);
             }
 
-            WriteFinal(parenthese switch
-            {
-                ParenthesesType.Parentheses => ')',
-                ParenthesesType.Brackets => ']',
-                ParenthesesType.Braces => '}',
-                _ => throw new ArgumentException($"Invalid {nameof(ParenthesesType)}: {parenthese}")
-            });
+            Put(GetClosingChar(listFormatting.Parentheses ?? default));
         }
 
     }

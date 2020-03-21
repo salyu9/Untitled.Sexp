@@ -7,16 +7,16 @@ namespace Untitled.Sexp
     /// <summary>
     /// Represent a sexp symbol.
     /// </summary>
-    public sealed class SSymbol : IEquatable<SSymbol>, IComparable<SSymbol>
+    public sealed class Symbol : IEquatable<Symbol>, IComparable<Symbol>
     {
-        private static readonly Dictionary<string, SSymbol> SymbolTable = new Dictionary<string, SSymbol>();
-        
+        private static readonly Dictionary<string, Symbol> SymbolTable = new Dictionary<string, Symbol>();
+
         /// <summary>
         /// Get the name of the symbol.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
 
-        private SSymbol(string name)
+        private Symbol(string name)
         {
             Name = name;
         }
@@ -26,47 +26,44 @@ namespace Untitled.Sexp
         /// </summary>
         /// <param name="name">The name of the symbol.</param>
         /// <returns>A symbol object with given name.</returns>
-        public static SSymbol FromString(string name)
+        public static Symbol FromString(string name)
         {
             if (SymbolTable.TryGetValue(name, out var symbol))
             {
                 return symbol;
             }
-            symbol = new SSymbol(name);
-            SymbolTable.Add(name, symbol);
-            return symbol;
+            lock (SymbolTable)
+            {
+                if (SymbolTable.TryGetValue(name, out symbol))
+                {
+                    return symbol;
+                }
+                symbol = new Symbol(name);
+                SymbolTable.Add(name, symbol);
+                return symbol;
+            }
         }
 
         /// <summary />
-        public int CompareTo(SSymbol other)
+        public int CompareTo(Symbol other)
             => CompareString(Name, other.Name);
 
         /// <summary />
         public override bool Equals(object obj)
-        {
-            if (!(obj is SSymbol symbol))
-            {
-                return false;
-            }
-            return Equals(symbol);
-        }
+            => obj is Symbol symbol && Equals(symbol);
 
         /// <summary />
-        public bool Equals(SSymbol other)
+        public bool Equals(Symbol other)
             => StringEquals(Name, other.Name);
 
         /// <summary />
-        public static bool operator ==(SSymbol a, SSymbol b)
+        public static bool operator ==(Symbol a, Symbol b)
             => StringEquals(a.Name, b.Name);
 
         /// <summary />
-        public static bool operator !=(SSymbol a, SSymbol b)
+        public static bool operator !=(Symbol a, Symbol b)
             => !StringEquals(a.Name, b.Name);
-
-        /// <summary />
-        public override string ToString()
-            => Name;
-
+        
         /// <summary />
         public override int GetHashCode()
             => Name.GetHashCode();

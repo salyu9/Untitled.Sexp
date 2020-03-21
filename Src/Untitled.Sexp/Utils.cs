@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 
 namespace Untitled.Sexp
@@ -124,6 +125,9 @@ namespace Untitled.Sexp
         public static bool StringEquals(string a, string b)
             => string.Equals(a, b, StringComparison.Ordinal);
 
+        public static bool StringEqualsIgnoreCase(string a, string b)
+            => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
         public static void DoubleBuffer<T>(ref T[] buffer)
         {
             var newBuffer = new T[buffer.Length * 2];
@@ -172,5 +176,7 @@ namespace Untitled.Sexp
         public static string ToHex(this int s)
             => ByteHexTable[s >> 24] + ByteHexTable[(s >> 16) & 0xFF] + ByteHexTable[(s >> 8) & 0xFF] + ByteHexTable[s & 0xFF];
 
+        public static Exception CreateInvalidEnumException<T>(string argumentName, T invalidValue) where T : Enum
+            => new InvalidEnumArgumentException(argumentName, Convert.ToInt32(invalidValue), typeof(T));
     }
 }

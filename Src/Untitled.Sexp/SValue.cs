@@ -40,11 +40,40 @@ namespace Untitled.Sexp
 
         internal object _value;
 
+        internal SValueFormatting? _formatting;
+
         /// <summary>
         /// Formatting of the sexp value.
         /// </summary>
         /// <value></value>
-        public SValueFormatting? Formatting { get; internal set; }
+        public SValueFormatting? Formatting
+        {
+            get => _formatting;
+            set
+            {
+                if (value == null)
+                {
+                    _formatting = null;
+                    return;
+                }
+                var formattingType = Type switch
+                {
+                    SValueType.Null => throw new SexpException("Cannot set null formatting"),
+                    SValueType.Eof => throw new SexpException("Cannot set eof formatting."),
+                    SValueType.Boolean => typeof(BooleanFormatting),
+                    SValueType.Number => typeof(NumberFormatting),
+                    SValueType.Char => typeof(CharacterFormatting),
+                    SValueType.String => typeof(CharacterFormatting),
+                    SValueType.Symbol => typeof(CharacterFormatting),
+                    SValueType.Pair => typeof(ListFormatting),
+                    SValueType.Bytes => typeof(BytesFormatting),
+                    SValueType.TypeIdentifier => typeof(CharacterFormatting),
+                    _ => throw new SexpException($"Invalid svalue type {Type}")
+                };
+                if (value.GetType() != formattingType) throw new SexpException($"Cannot set {value.GetType().Name} to SValue of type {Type}");
+                _formatting = value;
+            }
+        }
 
         internal SValue(object value, SValueType type, SValueFormatting? formatting = null)
         {
@@ -54,42 +83,42 @@ namespace Untitled.Sexp
         }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with another <see cref="SValue" />.
+        /// Initialize an <see cref="SValue" /> with another <see cref="SValue" />.
         /// </summary>
         public SValue(SValue other)
             : this(other._value, other.Type, other.Formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with a bool value.
+        /// Initialize an <see cref="SValue" /> with a bool value.
         /// </summary>
         public SValue(bool b, BooleanFormatting? formatting = null)
             : this(b, SValueType.Boolean, formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with an int value.
+        /// Initialize an <see cref="SValue" /> with an int value.
         /// </summary>
         public SValue(int n, NumberFormatting? formatting = null)
-            : this(n, SValueType.Number, formatting)
+            : this((long)n, SValueType.Number, formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with an long value.
+        /// Initialize an <see cref="SValue" /> with an long value.
         /// </summary>
         public SValue(long n, NumberFormatting? formatting = null)
             : this(n, SValueType.Number, formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with a double value.
+        /// Initialize an <see cref="SValue" /> with a double value.
         /// </summary>
         public SValue(double d, NumberFormatting? formatting = null)
             : this(d, SValueType.Number, formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with a char.
+        /// Initialize an <see cref="SValue" /> with a char.
         /// </summary>
         public SValue(char c, CharacterFormatting? formatting = null)
             : this((int)c, SValueType.Char, formatting)
@@ -117,23 +146,23 @@ namespace Untitled.Sexp
         }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with a string.
+        /// Initialize an <see cref="SValue" /> with a string.
         /// </summary>
         public SValue(string s, CharacterFormatting? formatting = null)
             : this(s, SValueType.String, formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with a byte array.
+        /// Initialize an <see cref="SValue" /> with a byte array.
         /// </summary>
         public SValue(IEnumerable<byte> bytes, BytesFormatting? formatting = null)
             : this(bytes.ToArray(), SValueType.Bytes, formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> with a symbol.
+        /// Initialize an <see cref="SValue" /> with a symbol.
         /// </summary>
-        public SValue(SSymbol symbol, CharacterFormatting? formatting = null)
+        public SValue(Symbol symbol, CharacterFormatting? formatting = null)
             : this(symbol, SValueType.Symbol, formatting)
         { }
 
@@ -141,20 +170,27 @@ namespace Untitled.Sexp
         /// Create an <see cref="SValue" /> symbol with a string.
         /// </summary>
         public static SValue Symbol(string s, CharacterFormatting? formatting = null)
-            => new SValue(SSymbol.FromString(s), formatting);
+            => new SValue(Untitled.Sexp.Symbol.FromString(s), formatting);
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> pair.
+        /// Initialize an <see cref="SValue" /> pair.
         /// </summary>
-        public SValue(SPair pair, ListFormatting? formatting = null)
+        public SValue(Pair pair, ListFormatting? formatting = null)
             : this(pair, SValueType.Pair, formatting)
         { }
 
         /// <summary>
-        /// Instantiate an <see cref="SValue" /> pair with car and cdr.
+        /// Initialize an <see cref="SValue" /> pair with car and cdr.
         /// </summary>
         public SValue(SValue car, SValue cdr, ListFormatting? formatting = null)
-            : this(new SPair(car, cdr), formatting)
+            : this(new Pair(car, cdr), formatting)
+        { }
+
+        /// <summary>
+        /// Initialize an <see cref="SValue" /> with type identifier.
+        /// </summary>
+        public SValue(TypeIdentifier identifier, CharacterFormatting? formatting = null)
+            : this(identifier, SValueType.TypeIdentifier, formatting)
         { }
 
         /// <summary>
@@ -223,6 +259,10 @@ namespace Untitled.Sexp
             => Type == SValueType.Bytes;
 
         /// <summary />
+        public bool IsTypeIdentifier
+            => Type == SValueType.TypeIdentifier;
+
+        /// <summary />
         public bool IsPair
             => Type == SValueType.Pair;
 
@@ -235,7 +275,7 @@ namespace Untitled.Sexp
                 while (!current.IsNull)
                 {
                     if (!current.IsPair) return false;
-                    var pair = (SPair)current._value;
+                    var pair = (Pair)current._value;
                     current = pair._cdr;
                 }
                 return true;
@@ -283,8 +323,8 @@ namespace Untitled.Sexp
 
             if (IsPair)
             {
-                var p1 = (SPair)_value;
-                var p2 = (SPair)other._value;
+                var p1 = (Pair)_value;
+                var p2 = (Pair)other._value;
                 return p1.Car.DeepEquals(p2.Car) && p1.Cdr.DeepEquals(p2.Cdr);
             }
 
@@ -326,10 +366,11 @@ namespace Untitled.Sexp
                 [typeof(long)] = v => v.AsLong(),
                 [typeof(double)] = v => v.AsDouble(),
                 [typeof(char)] = v => v.AsChar(),
-                [typeof(SSymbol)] = v => v.AsSymbol(),
+                [typeof(Symbol)] = v => v.AsSymbol(),
                 [typeof(string)] = v => v.AsString(),
-                [typeof(SPair)] = v => v.AsPair(),
+                [typeof(Pair)] = v => v.AsPair(),
                 [typeof(byte[])] = v => v.AsBytes().ToArray(),
+                [typeof(TypeIdentifier)] = v => v.AsTypeIdentifier(),
             };
 
         /// <summary>
@@ -387,7 +428,6 @@ namespace Untitled.Sexp
 
             return _value switch
             {
-                int i => i,
                 long l => (int)l,
                 double d => (int)d,
                 _ => throw new SexpException("Unknown underlying type of sexp number")
@@ -399,12 +439,11 @@ namespace Untitled.Sexp
         /// </summary>
         public long AsLong()
         {
-            if (!IsNumber) throw new InvalidCastException($"Cannot cast {Type} to int");
+            if (!IsNumber) throw new InvalidCastException($"Cannot cast {Type} to long");
 
             return _value switch
             {
                 long l => l,
-                int i => i,
                 double d => (long)d,
                 _ => throw new SexpException("Unknown underlying type of sexp number")
             };
@@ -415,13 +454,12 @@ namespace Untitled.Sexp
         /// </summary>
         public double AsDouble()
         {
-            if (!IsNumber) throw new InvalidCastException($"Cannot cast {Type} to int");
+            if (!IsNumber) throw new InvalidCastException($"Cannot cast {Type} to double");
 
             return _value switch
             {
-                double d => (long)d,
-                int i => i,
-                long l => l,
+                double d => d,
+                long l => (double)l,
                 _ => throw new SexpException("Unknown underlying type of sexp number")
             };
         }
@@ -457,7 +495,7 @@ namespace Untitled.Sexp
 
             var value = (int)_value;
             if (value <= 0xFFFF) return new string((char)value, 1);
-            
+
             var buffer = new char[2];
             DispartSurrogateToBuffer(value, buffer);
             return new string(buffer);
@@ -466,11 +504,11 @@ namespace Untitled.Sexp
         /// <summary>
         /// Cast to symbol.
         /// </summary>
-        public SSymbol AsSymbol()
+        public Symbol AsSymbol()
         {
             if (!IsSymbol) throw new InvalidCastException($"Cannot cast {Type} to symbol");
 
-            return (SSymbol)_value;
+            return (Symbol)_value;
         }
 
         /// <summary>
@@ -497,11 +535,21 @@ namespace Untitled.Sexp
         /// <summary>
         /// Cast to pair. 
         /// </summary>
-        public SPair AsPair()
+        public Pair AsPair()
         {
             if (!IsPair) throw new InvalidCastException($"Cannot cast {Type} to pair");
 
-            return (SPair)_value;
+            return (Pair)_value;
+        }
+
+        /// <summary>
+        /// Cast to <see cref="TypeIdentifier"/>
+        /// </summary>
+        public TypeIdentifier AsTypeIdentifier()
+        {
+            if (!IsTypeIdentifier) throw new InvalidCastException($"Cannot cast {Type} to type-identifier");
+
+            return (TypeIdentifier)_value;
         }
 
         /// <summary>
@@ -514,7 +562,7 @@ namespace Untitled.Sexp
             var current = this;
             while (!current.IsNull)
             {
-                var pair = (SPair)current._value;
+                var pair = (Pair)current._value;
                 yield return pair._car;
                 current = pair._cdr;
             }
@@ -535,9 +583,29 @@ namespace Untitled.Sexp
             var current = this;
             while (!current.IsNull)
             {
-                var pair = (SPair)current._value;
+                var pair = (Pair)current._value;
                 yield return (T)caster(pair._car);
                 current = pair._cdr;
+            }
+        }
+
+        /// <summary>
+        /// Get the length of sexp list. Throws if value is not list.
+        /// </summary>
+        public int Length
+        {
+            get
+            {
+                var n = 0;
+                var current = this;
+                while (!current.IsNull)
+                {
+                    if (!current.IsPair) throw new InvalidCastException($"The sexp value is not a list");
+                    var pair = (Pair)current._value;
+                    ++n;
+                    current = pair._cdr;
+                }
+                return n;
             }
         }
 
@@ -581,7 +649,7 @@ namespace Untitled.Sexp
         /// <summary>
         /// Implicit cast symbol to sexp value.
         /// </summary>
-        public static implicit operator SValue(SSymbol s) => new SValue(s);
+        public static implicit operator SValue(Symbol s) => new SValue(s);
 
         /// <summary>
         /// Implicit cast string to sexp value.
@@ -591,7 +659,12 @@ namespace Untitled.Sexp
         /// <summary>
         /// Implicit cast pair to sexp value.
         /// </summary>
-        public static implicit operator SValue(SPair p) => new SValue(p);
+        public static implicit operator SValue(Pair p) => new SValue(p);
+
+        /// <summary>
+        /// Implicit cast <see cref="TypeIdentifier" /> to sexp value.
+        /// </summary>
+        public static implicit operator SValue(TypeIdentifier id) => new SValue(id);
 
         /// <summary>
         /// Explicit cast sexp value to bool.
@@ -621,7 +694,7 @@ namespace Untitled.Sexp
         /// <summary>
         /// Explicit cast sexp value to symbol.
         /// </summary>
-        public static explicit operator SSymbol(SValue v) => v.AsSymbol();
+        public static explicit operator Symbol(SValue v) => v.AsSymbol();
 
         /// <summary>
         /// Explicit cast sexp value to string.
@@ -631,12 +704,17 @@ namespace Untitled.Sexp
         /// <summary>
         /// Explicit cast sexp value to pair.
         /// </summary>
-        public static explicit operator SPair(SValue v) => v.AsPair();
+        public static explicit operator Pair(SValue v) => v.AsPair();
 
         /// <summary>
         /// Explicit cast sexp value to byte[]. The result is a copy of underlying byte array.
         /// </summary>
         public static explicit operator byte[](SValue v) => v.AsBytes().ToArray();
+
+        /// <summary>
+        /// Explicit cast sexp value to <see cref="TypeIdentifier" />.
+        /// </summary>
+        public static explicit operator TypeIdentifier(SValue v) => v.AsTypeIdentifier();
 
         #endregion
     }

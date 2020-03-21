@@ -29,7 +29,6 @@ namespace Untitled.Sexp
         /// <summary>
         /// Whether #"" byte string allowed for byte[].
         /// </summary>
-        /// <value></value>
         public bool AllowRacketStyleByteString { get; set; } = true;
 
         /// <summary>
@@ -40,8 +39,17 @@ namespace Untitled.Sexp
         /// <summary>
         /// Whether \u and \U allowed in string and symbol.
         /// </summary>
-        /// <value></value>
         public bool AllowUInEscaping { get; set; } = true;
+
+        /// <summary>
+        /// Accept null as (), if set to false, null will be read as symbol.
+        /// </summary>
+        public bool AcceptNull { get; set; } = true;
+
+        /// <summary>
+        /// Accept nil as (), if set to false, null will be read as symbol.
+        /// </summary>
+        public bool AcceptNil { get; set; } = true;
 
         /// <summary>
         /// Initialize default settings.
@@ -60,6 +68,8 @@ namespace Untitled.Sexp
             AllowRacketStyleByteString = other.AllowRacketStyleByteString;
             AllowUInCharacter = other.AllowUInCharacter;
             AllowUInEscaping = other.AllowUInEscaping;
+            AcceptNull = other.AcceptNull;
+            AcceptNil = other.AcceptNil;
         }
     }
 }
