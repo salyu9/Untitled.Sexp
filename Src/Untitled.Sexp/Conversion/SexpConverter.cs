@@ -51,8 +51,6 @@ namespace Untitled.Sexp.Conversion
         {
             if (obj == null) return SValue.Null;
 
-            Console.WriteLine($"Convert {obj.GetType()} to {type}");
-
             var objType = obj.GetType();
 
             if (type != objType)

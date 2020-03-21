@@ -572,6 +572,7 @@ namespace Untitled.Sexp
                 if (i == buffer.Length) DoubleBuffer(ref buffer);
                 buffer[i++] = (char)ch;
             }
+            if (ch >= 0) UngetCh(ch);
             var str = new string(buffer, 0, i);
             var lower = str.ToLowerInvariant();
             if (i == 6)
