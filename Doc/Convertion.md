@@ -18,7 +18,9 @@ SexpConvert.Deserialize<int>("123") // int 123
 
 Arrays will simply be converted to sexp lists.
 If a type is inherited from ```IDictionary<TKey, TValue>```, it will be converted to a list of pairs, the ```Car``` and ```Cdr``` of each pair is the key and the value of each entry in the dictionary, converted as type ```TKey``` and ```TValue```.
+
 If a type is inherited from ```ICollection<T>```, it will be converted to a list. The elements in the collection is converted as type ```T```.
+
 If a type is inherited from non-generic ```IDictionary``` or ```IList```, it will be converted similar to the generic version, but the elements is converted as ```object```, see polymorphic convertions below.
 
 ```csharp
@@ -32,6 +34,7 @@ SexpConvert.Serialize(new Dictionary<string, int>{ ["foo"] = 4, ["bar"] = 5 })
 ## Enums
 
 Enums will be converted to numbers representing their values. If the enum type has attribute ```[SexpSymbolEnum]```, its value will be converted to symbol of the value name, throws if name not found.
+
 If the enum type is a ```[Flags]``` enum, instead of a symbol its value will be converted to a list of symbols, containing members set by the value, throws if the value cannot be represented with enum members.
 
 ```csharp
@@ -42,8 +45,11 @@ SexpConvert.Deserialize<TestEnum>(9999) // throws SexpConvertException
 ## Custom types
 
 If a type is marked as ```[SexpAssociationList]```, its value will be converted to an association-list, with the ```AssociationListStyle``` specified by the attribute.
+
 The list contains properties and fields of the value. Members marked as ```[SexpIgnore]``` will be ignored. Use ```[SexpMember]``` attribute to specify the name and order of the member. If any member has its order specified, all members should has positive orders specified.
+
 Formatting attributes such as ```[SexpNumberFormatting]``` can be applied to members with corresponding types.
+
 If a property is read-only, it will be included in the converted ```SValue``` but will not be converted back. Similarly, write-only properties will not be included in ```SValue```s but will be converted back if the source ```SValue``` has the key-value pair.
 
 ```csharp
@@ -71,6 +77,7 @@ SexpConvert.Serialize(new Point { X = 1, Y = 2 }) // ((x . 1) (y . #b10))
 ```
 
 If a type is marked as ```[SexpAsList]```, its value will be converted to a list. The member values will be sequentially included in the list. Read-only properties and write-only properties are all ignored.
+
 __NOTE__: Only use this feature for simple types. The order of members in a complex type is hard to keep. ```[SexpAsList]``` atrribute rejects types that have both properties and fields to be converted but have not specified orders of them.
 
 ```csharp
@@ -132,5 +139,5 @@ SexpConvert.Serialize<MyType>(new Add(...)) // (#type:+ ...)
 ## Custom converter
 
 ```SexpConvert``` just wraps ```SexpConverter```s. A type can have custom converter if marked by ```[SexpCustomConverter]```.
-For simple uses, ```ToObjectExactType()``` and ```ToValueExactType()``` should be implemented. They handle values that a exactly the type of the target object.
-```ToObject()``` and ```ToValue()``` can also be overrided to customize type handling.
+
+For simple uses, ```ToObjectExactType()``` and ```ToValueExactType()``` should be implemented. They handle values that a exactly the type of the target object. ```ToObject()``` and ```ToValue()``` can also be overrided to customize type handling.

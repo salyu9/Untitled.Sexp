@@ -46,17 +46,17 @@ namespace Untitled.Sexp.Samples
             var dict = SexpConvert.Deserialize<SortedDictionary<string, int>>(@"((""asdf"" . 2) (""test"" . 1))");
             foreach (var kv in dict) Console.WriteLine($"{kv.Key} = {kv.Value}");
 
-            var info = new BookInfo{
+            var info = new BookInfo
+            {
                 Name = "SICP",
                 Price = 25,
                 Language = Language.English,
                 Versions = new string[] { "Hardcover", "Paperback", "Digital" },
             };
             var output = SexpConvert.Serialize(info);
-
-Console.WriteLine(SexpConvert.Serialize(new TypeWithObject{ o = 123 }));
         }
-[SexpAsList]class TypeWithObject { public object o; }
+        
+        [SexpAsList] class TypeWithObject { public object o; }
         [SexpSymbolEnum]
         enum Language
         {
@@ -64,7 +64,9 @@ Console.WriteLine(SexpConvert.Serialize(new TypeWithObject{ o = 123 }));
             French,
         }
 
-        [SexpAsAssociationList(Style = AssociationListStyle.ListOfPairs, InnerParentheses = ParenthesesType.Brackets)]
+        [SexpAsAssociationList(
+            Style = AssociationListStyle.ListOfPairs,
+            InnerParentheses = ParenthesesType.Brackets)]
         class BookInfo
         {
             public string Name { get; set; }
@@ -72,7 +74,7 @@ Console.WriteLine(SexpConvert.Serialize(new TypeWithObject{ o = 123 }));
             public Language Language { get; set; }
             public string[] Versions { get; set; }
         }
-        
+
         [SexpAsList]
         class TestType
         {

@@ -4,13 +4,17 @@
     <AssemblyName>Untitled.Sexp</AssemblyName>
     <AssemblyTitle>Untitled.Sexp</AssemblyTitle>
     <Description>A simple S-expressions reader/writer.</Description>
-    <TargetFrameworks>net40;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;netstandard2.0;net47;net45;net40</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Nullable>enable</Nullable>
-
+    
+    <PackageId>Untitled.Sexp</PackageId>
+    <Version>0.1.0</Version>
+    <PackageTags>Sexp;Sexpr;S-expression;Serialization</PackageTags>
+    <PackageProjectUrl>https://github.com/salyu9/Untitled.Sexp</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,5 +27,5 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  
+
 </Project>
