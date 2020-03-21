@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>Untitled.Sexp</AssemblyName>
     <AssemblyTitle>Untitled.Sexp</AssemblyTitle>
-    <Description>A simple S-expressions reader/writer.</Description>
+    <Description>Simple .Net library for reading, writing and serializing s-expressions.</Description>
     <TargetFrameworks>netstandard2.1;netstandard2.0;net47;net45;net40</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
 
@@ -15,6 +15,7 @@
     <Version>0.1.0</Version>
     <PackageTags>Sexp;Sexpr;S-expression;Serialization</PackageTags>
     <PackageProjectUrl>https://github.com/salyu9/Untitled.Sexp</PackageProjectUrl>
+    <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
