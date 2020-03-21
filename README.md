@@ -29,5 +29,5 @@ var output = SexpConvert.Serialize(info);
 
 ## Usage
 
-[SValue](Doc/SValue.md)
-[Convertion and Serialization](Doc/Convertion.md)
+- [SValue](Doc/SValue.md)
+- [Convertion and Serialization](Doc/Convertion.md)
