@@ -10,16 +10,20 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Nullable>enable</Nullable>
-    
     <PackageId>Untitled.Sexp</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageTags>sexp;sexpr;sexpression;serialization</PackageTags>
     <PackageProjectUrl>https://github.com/salyu9/Untitled.Sexp</PackageProjectUrl>
     <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
+    <PackageIcon>parentheses.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Untitled.Sexp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(PackageIcon)" Pack="true" PackagePath=""/>
   </ItemGroup>
 
   <ItemGroup>
