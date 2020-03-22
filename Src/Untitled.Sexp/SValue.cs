@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using Untitled.Sexp.Formatting;
@@ -11,7 +10,7 @@ namespace Untitled.Sexp
     /// <summary>
     /// Represent an sexp value.
     /// </summary>
-    public sealed class SValue
+    public sealed partial class SValue : IEquatable<SValue>
     {
         /// <summary>
         /// The Null value.
@@ -41,6 +40,8 @@ namespace Untitled.Sexp
         internal object _value;
 
         internal SValueFormatting? _formatting;
+
+        internal int _hash;
 
         /// <summary>
         /// Formatting of the sexp value.
@@ -75,11 +76,31 @@ namespace Untitled.Sexp
             }
         }
 
+        // stolen from array.cs, the times 33 hash with xor, that is djb2a
+        private static int CombineHashCodes(int h1, int h2)
+        {
+            return (((h1 << 5) + h1) ^ h2);
+        }
+
         internal SValue(object value, SValueType type, SValueFormatting? formatting = null)
         {
             _value = value;
             Type = type;
             Formatting = formatting;
+
+            if (value is byte[] bytes) // calc hash for bytes, using last 8 elem
+            {
+                var ret = 0;
+                for (int i = bytes.Length > 8 ? bytes.Length - 8 : 0; i < bytes.Length; ++i)
+                {
+                    ret = CombineHashCodes(ret, bytes[i]);
+                }
+                _hash = ret;
+            }
+            else
+            {
+                _hash = value.GetHashCode();
+            }
         }
 
         /// <summary>
@@ -282,33 +303,10 @@ namespace Untitled.Sexp
             }
         }
 
-        /// <summary />
-        public int CompareTo(SValue other)
-        {
-            if (ReferenceEquals(this, other)) return 0;
-
-            var t = Type.CompareTo(other.Type);
-            if (t != 0) return t;
-
-            if (IsBytes)
-            {
-                var b1 = (byte[])_value;
-                var b2 = (byte[])other._value;
-                foreach (var i in Range(Math.Min(b1.Length, b2.Length)))
-                {
-                    var b = b1[i].CompareTo(b2[i]);
-                    if (b != 0) return b;
-                }
-                return b1.Length.CompareTo(b2.Length);
-            }
-
-            return ((IComparable)_value).CompareTo((IComparable)other._value);
-        }
-
         /// <summary>
         /// Compare two sexp values.
         /// </summary>
-        public bool DeepEquals(SValue other)
+        public bool Equals(SValue other)
         {
             if (ReferenceEquals(this, other)) return true;
 
@@ -325,11 +323,15 @@ namespace Untitled.Sexp
             {
                 var p1 = (Pair)_value;
                 var p2 = (Pair)other._value;
-                return p1.Car.DeepEquals(p2.Car) && p1.Cdr.DeepEquals(p2.Cdr);
+                return p1.Car.Equals(p2.Car) && p1.Cdr.Equals(p2.Cdr);
             }
 
             return _value.Equals(other._value);
         }
+
+        /// <summary />
+        public override bool Equals(object obj)
+            => obj is SValue value && Equals(value);
 
         /// <summary>
         /// Compare two sexp values.
@@ -337,12 +339,16 @@ namespace Untitled.Sexp
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static bool DeepEquals(SValue? a, SValue? b)
+        public static bool Equals(SValue? a, SValue? b)
         {
             if (a == null && b == null) return true;
-            if (a != null && b != null) return a.DeepEquals(b);
+            if (a != null && b != null) return a.Equals(b);
             return false;
         }
+
+        /// <summary />
+        public override int GetHashCode()
+            => _hash;
 
         /// <summary />
         public override string ToString()
@@ -350,372 +356,7 @@ namespace Untitled.Sexp
             using var writer = new StringWriter();
             new SexpTextWriter(writer).Write(this);
             return writer.ToString();
-
-            // if (IsNull) return "<SValue type = Null>";
-            // if (IsBytes) return $"<SValue type = Bytes, value = {string.Join(", ", ((byte[])_value).Select(b => b.ToString("X02")))}";
-            // return $"<SValue type = {Type}, value = {_value}>";
         }
 
-        #region Casts
-
-        private static Dictionary<Type, Func<SValue, object>> CasterTable
-            = new Dictionary<Type, Func<SValue, object>>
-            {
-                [typeof(bool)] = v => v.AsBoolean(),
-                [typeof(int)] = v => v.AsInt(),
-                [typeof(long)] = v => v.AsLong(),
-                [typeof(double)] = v => v.AsDouble(),
-                [typeof(char)] = v => v.AsChar(),
-                [typeof(Symbol)] = v => v.AsSymbol(),
-                [typeof(string)] = v => v.AsString(),
-                [typeof(Pair)] = v => v.AsPair(),
-                [typeof(byte[])] = v => v.AsBytes().ToArray(),
-                [typeof(TypeIdentifier)] = v => v.AsTypeIdentifier(),
-            };
-
-        /// <summary>
-        /// Cast sexp value to type T.
-        /// </summary>
-        /// <typeparam name="T">Target type.</typeparam>
-        public T Cast<T>()
-        {
-            if (!CasterTable.TryGetValue(typeof(T), out var caster))
-            {
-                throw new InvalidCastException($"Cannot cast sexp value to {typeof(T)}");
-            }
-            return (T)caster(this);
-        }
-
-#nullable disable // quirk nullable generics
-
-        /// <summary>
-        /// Try to cast sexp value to type T.
-        /// </summary>
-        /// <param name="result">Out parameter that will receive result.</param>
-        /// <typeparam name="T">Target type.</typeparam>
-        /// <returns>True if successfully casted, otherwise false.</returns>
-        public bool TryCast<T>(out T result)
-        {
-            try
-            {
-                result = Cast<T>();
-                return true;
-            }
-            catch
-            {
-                result = default;
-                return false;
-            }
-        }
-#nullable enable
-
-        /// <summary>
-        /// Cast to bool.
-        /// </summary>
-        public bool AsBoolean()
-        {
-            if (!IsBoolean) throw new InvalidCastException($"Cannot cast {Type} to bool");
-
-            return (bool)_value;
-        }
-
-        /// <summary>
-        /// Cast to int.
-        /// </summary>
-        public int AsInt()
-        {
-            if (!IsNumber) throw new InvalidCastException($"Cannot cast {Type} to int");
-
-            return _value switch
-            {
-                long l => (int)l,
-                double d => (int)d,
-                _ => throw new SexpException("Unknown underlying type of sexp number")
-            };
-        }
-
-        /// <summary>
-        /// Cast to long.
-        /// </summary>
-        public long AsLong()
-        {
-            if (!IsNumber) throw new InvalidCastException($"Cannot cast {Type} to long");
-
-            return _value switch
-            {
-                long l => l,
-                double d => (long)d,
-                _ => throw new SexpException("Unknown underlying type of sexp number")
-            };
-        }
-
-        /// <summary>
-        /// Cast to double.
-        /// </summary>
-        public double AsDouble()
-        {
-            if (!IsNumber) throw new InvalidCastException($"Cannot cast {Type} to double");
-
-            return _value switch
-            {
-                double d => d,
-                long l => (double)l,
-                _ => throw new SexpException("Unknown underlying type of sexp number")
-            };
-        }
-
-        /// <summary>
-        /// Cast to char.
-        /// </summary>
-        public char AsChar()
-        {
-            if (!IsChar) throw new InvalidCastException($"Cannot cast {Type} to char");
-
-            int scalar = (int)_value;
-            if (scalar > char.MaxValue) throw new OverflowException($"Scalar value {scalar} is larger than the limit of char, consider use {nameof(AsUnicodeScalarValue)}()");
-            return (char)scalar;
-        }
-
-        /// <summary>
-        /// Cast to unicode scalar value (may exceed char type limit).
-        /// </summary>
-        public int AsUnicodeScalarValue()
-        {
-            if (!IsChar) throw new InvalidCastException($"Cannot cast {Type} to char");
-
-            return (int)_value;
-        }
-
-        /// <summary>
-        /// Cast char to a single character string. Useful when dealing with characters larger than 0xFFFF.
-        /// </summary>
-        public string CharToString()
-        {
-            if (!IsChar) throw new InvalidCastException($"Cannot cast {Type} to char");
-
-            var value = (int)_value;
-            if (value <= 0xFFFF) return new string((char)value, 1);
-
-            var buffer = new char[2];
-            DispartSurrogateToBuffer(value, buffer);
-            return new string(buffer);
-        }
-
-        /// <summary>
-        /// Cast to symbol.
-        /// </summary>
-        public Symbol AsSymbol()
-        {
-            if (!IsSymbol) throw new InvalidCastException($"Cannot cast {Type} to symbol");
-
-            return (Symbol)_value;
-        }
-
-        /// <summary>
-        /// Cast to string.
-        /// </summary>
-        public string AsString()
-        {
-            if (!IsString) throw new InvalidCastException($"Cannot cast {Type} to string");
-
-            return (string)_value;
-        }
-
-        /// <summary>
-        /// Cast to bytes. The result is an immutable reference to underlying byte array.
-        /// </summary>
-        /// <returns>An immutable reference to underlying byte array.</returns>
-        public ReadOnlyCollection<byte> AsBytes()
-        {
-            if (!IsBytes) throw new InvalidCastException($"Cannot cast {Type} to bytes");
-
-            return Array.AsReadOnly((byte[])_value);
-        }
-
-        /// <summary>
-        /// Cast to pair. 
-        /// </summary>
-        public Pair AsPair()
-        {
-            if (!IsPair) throw new InvalidCastException($"Cannot cast {Type} to pair");
-
-            return (Pair)_value;
-        }
-
-        /// <summary>
-        /// Cast to <see cref="TypeIdentifier"/>
-        /// </summary>
-        public TypeIdentifier AsTypeIdentifier()
-        {
-            if (!IsTypeIdentifier) throw new InvalidCastException($"Cannot cast {Type} to type-identifier");
-
-            return (TypeIdentifier)_value;
-        }
-
-        /// <summary>
-        /// Get a enumrable reference to the list. Throws if the value is not list.
-        /// </summary>
-        public IEnumerable<SValue> AsEnumerable()
-        {
-            if (!IsList) throw new InvalidCastException($"The sexp value is not a list");
-
-            var current = this;
-            while (!current.IsNull)
-            {
-                var pair = (Pair)current._value;
-                yield return pair._car;
-                current = pair._cdr;
-            }
-        }
-
-        /// <summary>
-        /// Get a enumrable reference to the list with type casting.
-        /// </summary>
-        /// <typeparam name="T">Type of list elements.</typeparam>
-        public IEnumerable<T> AsEnumerable<T>()
-        {
-            if (!CasterTable.TryGetValue(typeof(T), out var caster))
-            {
-                throw new InvalidCastException($"Cannot cast sexp value to {typeof(T)}");
-            }
-            if (!IsList) throw new InvalidCastException($"The sexp value is not a list");
-
-            var current = this;
-            while (!current.IsNull)
-            {
-                var pair = (Pair)current._value;
-                yield return (T)caster(pair._car);
-                current = pair._cdr;
-            }
-        }
-
-        /// <summary>
-        /// Get the length of sexp list. Throws if value is not list.
-        /// </summary>
-        public int Length
-        {
-            get
-            {
-                var n = 0;
-                var current = this;
-                while (!current.IsNull)
-                {
-                    if (!current.IsPair) throw new InvalidCastException($"The sexp value is not a list");
-                    var pair = (Pair)current._value;
-                    ++n;
-                    current = pair._cdr;
-                }
-                return n;
-            }
-        }
-
-        /// <summary>
-        /// Cast to list of sexp values.
-        /// </summary>
-        public List<SValue> ToList()
-            => AsEnumerable().ToList();
-
-        /// <summary>
-        /// Cast to list of target type values.
-        /// </summary>
-        public List<T> ToList<T>()
-            => AsEnumerable<T>().ToList();
-
-        /// <summary>
-        /// Implicit cast bool to sexp value.
-        /// </summary>
-        public static implicit operator SValue(bool b) => b ? True : False;
-
-        /// <summary>
-        /// Implicit cast int to sexp value.
-        /// </summary>
-        public static implicit operator SValue(int i) => new SValue(i);
-
-        /// <summary>
-        /// Implicit cast long to sexp value.
-        /// </summary>
-        public static implicit operator SValue(long l) => new SValue(l);
-
-        /// <summary>
-        /// Implicit cast double to sexp value.
-        /// </summary>
-        public static implicit operator SValue(double d) => new SValue(d);
-
-        /// <summary>
-        /// Implicit cast char to sexp value.
-        /// </summary>
-        public static implicit operator SValue(char c) => new SValue(c);
-
-        /// <summary>
-        /// Implicit cast symbol to sexp value.
-        /// </summary>
-        public static implicit operator SValue(Symbol s) => new SValue(s);
-
-        /// <summary>
-        /// Implicit cast string to sexp value.
-        /// </summary>
-        public static implicit operator SValue(string s) => new SValue(s);
-
-        /// <summary>
-        /// Implicit cast pair to sexp value.
-        /// </summary>
-        public static implicit operator SValue(Pair p) => new SValue(p);
-
-        /// <summary>
-        /// Implicit cast <see cref="TypeIdentifier" /> to sexp value.
-        /// </summary>
-        public static implicit operator SValue(TypeIdentifier id) => new SValue(id);
-
-        /// <summary>
-        /// Explicit cast sexp value to bool.
-        /// </summary>
-        public static explicit operator bool(SValue v) => v.AsBoolean();
-
-        /// <summary>
-        /// Explicit cast sexp value to int.
-        /// </summary>
-        public static explicit operator int(SValue v) => v.AsInt();
-
-        /// <summary>
-        /// Explicit cast sexp value to long.
-        /// </summary>
-        public static explicit operator long(SValue v) => v.AsLong();
-
-        /// <summary>
-        /// Explicit cast sexp value to double.
-        /// </summary>
-        public static explicit operator double(SValue v) => v.AsDouble();
-
-        /// <summary>
-        /// Explicit cast sexp value to char.
-        /// </summary>
-        public static explicit operator char(SValue v) => v.AsChar();
-
-        /// <summary>
-        /// Explicit cast sexp value to symbol.
-        /// </summary>
-        public static explicit operator Symbol(SValue v) => v.AsSymbol();
-
-        /// <summary>
-        /// Explicit cast sexp value to string.
-        /// </summary>
-        public static explicit operator string(SValue v) => v.AsString();
-
-        /// <summary>
-        /// Explicit cast sexp value to pair.
-        /// </summary>
-        public static explicit operator Pair(SValue v) => v.AsPair();
-
-        /// <summary>
-        /// Explicit cast sexp value to byte[]. The result is a copy of underlying byte array.
-        /// </summary>
-        public static explicit operator byte[](SValue v) => v.AsBytes().ToArray();
-
-        /// <summary>
-        /// Explicit cast sexp value to <see cref="TypeIdentifier" />.
-        /// </summary>
-        public static explicit operator TypeIdentifier(SValue v) => v.AsTypeIdentifier();
-
-        #endregion
     }
 }

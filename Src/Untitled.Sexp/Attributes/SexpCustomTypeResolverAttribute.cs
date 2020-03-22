@@ -6,7 +6,7 @@ namespace Untitled.Sexp.Attributes
     /// <summary>
     /// This type is a base type and will have a custom type resolver.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public sealed class SexpCustomTypeResolverAttribute : Attribute
     {
         /// <summary>

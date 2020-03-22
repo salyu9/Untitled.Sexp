@@ -10,17 +10,20 @@ namespace Untitled.Sexp.Conversion
         /// <summary>
         /// Get type for the typeid value.
         /// </summary>
-        public override Type Resolve(TypeIdentifier typeid)
+        public override Type Resolve(SValue typeid)
         {
-            return Type.GetType(typeid.Name, true, true);
+            return Type.GetType(typeid.AsTypeIdentifier().Name, true, true);
         }
 
         /// <summary>
         /// Get typeid for the type.
         /// </summary>
-        public override TypeIdentifier GetTypeId(Type type)
+        public override SValue GetTypeId(Type type)
         {
             return TypeIdentifier.FromString(type.AssemblyQualifiedName);
         }
+
+        /// <summary />
+        public override bool GeneralTypeIdentifier => false;
     }
 }

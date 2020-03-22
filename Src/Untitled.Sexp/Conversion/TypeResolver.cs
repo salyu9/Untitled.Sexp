@@ -10,12 +10,18 @@ namespace Untitled.Sexp.Conversion
         /// <summary>
         /// Get type for the typeid value.
         /// </summary>
-        public abstract Type Resolve(TypeIdentifier typeid);
+        public abstract Type Resolve(SValue typeid);
 
         /// <summary>
         /// Get typeid for the type.
         /// </summary>
-        public abstract TypeIdentifier GetTypeId(Type type);
+        public abstract SValue GetTypeId(Type type);
+
+        /// <summary>
+        /// If <see cref="GetTypeId" />() always yield <see cref="TypeIdentifier" />, returns false, otherwise true. <br />
+        /// If this property is true, typeid will always be written by this type resolver.
+        /// </summary>
+        public abstract bool GeneralTypeIdentifier { get; }
 
         /// <summary>
         /// Default type resolver.

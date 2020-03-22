@@ -7,10 +7,12 @@ namespace Untitled.Sexp.Conversion
     /// <summary>
     /// Simple type resolver with lookup table.
     /// </summary>
-    public class LookupTypeResolver : TypeResolver, IEnumerable<KeyValuePair<TypeIdentifier, Type>>
+    public class LookupTypeResolver : TypeResolver, IEnumerable<KeyValuePair<SValue, Type>>
     {
-        private readonly Dictionary<TypeIdentifier, Type> _forwardTable = new Dictionary<TypeIdentifier, Type>();
-        private readonly Dictionary<Type, TypeIdentifier> _backwardTable = new Dictionary<Type, TypeIdentifier>();
+        private readonly Dictionary<SValue, Type> _forwardTable = new Dictionary<SValue, Type>();
+        private readonly Dictionary<Type, SValue> _backwardTable = new Dictionary<Type, SValue>();
+
+        private bool _generalTypeId = false;
 
         /// <summary>
         /// Add a entry.
@@ -40,19 +42,39 @@ namespace Untitled.Sexp.Conversion
             => Add(name, type);
 
         /// <summary>
+        /// Add a entry with general typeid.
+        /// </summary>
+        public void AddGeneral(SValue id, Type type)
+        {
+            _forwardTable.Add(id, type);
+            _backwardTable.Add(type, id);
+            if (!id.IsTypeIdentifier) _generalTypeId = true;
+        }
+
+        /// <summary>
         /// Get type for the type identifier value.
         /// </summary>
-        public override Type Resolve(TypeIdentifier typeid)
-            => _forwardTable[typeid];
+        public override Type Resolve(SValue typeid)
+        {
+            if (_forwardTable.TryGetValue(typeid, out var type)) return type;
+            throw new SexpConvertException($"Cannot resolve type {typeid}");
+        }
 
         /// <summary>
         /// Get typeid for the type.
         /// </summary>
-        public override TypeIdentifier GetTypeId(Type type)
-            => _backwardTable[type];
+        public override SValue GetTypeId(Type type)
+        {
+            if (_backwardTable.TryGetValue(type, out var id)) return id;
+            throw new SexpConvertException($"Cannot get type id of {type}");
+        }
 
         /// <summary />
-        public IEnumerator<KeyValuePair<TypeIdentifier, Type>> GetEnumerator()
+        public override bool GeneralTypeIdentifier
+            => _generalTypeId;
+
+        /// <summary />
+        public IEnumerator<KeyValuePair<SValue, Type>> GetEnumerator()
         {
             return _forwardTable.GetEnumerator();
         }

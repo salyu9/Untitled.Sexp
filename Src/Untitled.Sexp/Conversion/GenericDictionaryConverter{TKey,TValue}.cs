@@ -26,22 +26,22 @@ namespace Untitled.Sexp.Conversion
         public override bool CanConvert(Type type)
             => type == _type;
 
-        public override object? ToObjectExactType(SValue value)
+        public override object? ToObject(SValue value)
         {
             var dict = (IDictionary<TKey, TValue>)Activator.CreateInstance(_type);
             foreach (var kv in value.AsEnumerable<Pair>())
             {
-                dict.Add((TKey)_keyConverter.ToObject(kv._car)!, (TValue)_valueConverter.ToObject(kv._cdr)!);
+                dict.Add((TKey)_keyConverter.ToObjectWithTypeCheck(kv._car)!, (TValue)_valueConverter.ToObjectWithTypeCheck(kv._cdr)!);
             }
             return dict;
         }
 
-        public override SValue ToValueExactType(object obj)
+        public override SValue ToValue(object obj)
         {
             var builder = new ListBuilder();
             foreach (var kv in (IDictionary<TKey, TValue>)obj)
             {
-                builder.Add(new Pair(_keyConverter.ToValue(_keyType, kv.Key!), _valueConverter.ToValue(_valueType, kv.Value)));
+                builder.Add(new Pair(_keyConverter.ToValueWithTypeCheck(_keyType, kv.Key!), _valueConverter.ToValueWithTypeCheck(_valueType, kv.Value)));
             }
             return builder.ToValue();
         }

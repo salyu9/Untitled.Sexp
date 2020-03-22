@@ -23,25 +23,25 @@ namespace Untitled.Sexp.Conversion
         public override bool CanConvert(Type type)
             => type == _type;
 
-        public override object? ToObjectExactType(SValue value)
+        public override object? ToObject(SValue value)
         {
-            var array = Array.CreateInstance(_elemType, value.Length);
+            var array = Array.CreateInstance(_elemType, value.Length());
             int i = 0;
             foreach (var elemValue in value.AsEnumerable())
             {
-                array.SetValue(_elemConverter.ToObject(elemValue), i++);
+                array.SetValue(_elemConverter.ToObjectWithTypeCheck(elemValue), i++);
             }
             return array;
         }
 
-        public override SValue ToValueExactType(object obj)
+        public override SValue ToValue(object obj)
         {
             var array = (Array)obj;
             
             var builder = new ListBuilder();
             foreach (var elem in array)
             {
-                builder.Add(_elemConverter.ToValue(_elemType, elem));
+                builder.Add(_elemConverter.ToValueWithTypeCheck(_elemType, elem));
             }
 
             return builder.ToValue();

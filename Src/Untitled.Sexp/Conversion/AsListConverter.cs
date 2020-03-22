@@ -33,10 +33,10 @@ namespace Untitled.Sexp.Conversion
             }
         }
 
-        public override object? ToObjectExactType(SValue value)
+        public override object? ToObject(SValue value)
         {
             if (!value.IsList) throw new SexpConvertException(_type, value);
-            if (value.Length != _members.Count)
+            if (value.Length() != _members.Count)
             {
                 throw new SexpConvertException($"list length not match, expecting {_members.Count}", _type, value);
             }
@@ -50,7 +50,7 @@ namespace Untitled.Sexp.Conversion
             return result;
         }
 
-        public override SValue ToValueExactType(object obj)
+        public override SValue ToValue(object obj)
         {
             var builder = new ListBuilder();
             foreach (var member in _members)

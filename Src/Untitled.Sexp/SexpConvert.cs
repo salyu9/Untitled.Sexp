@@ -56,7 +56,7 @@ namespace Untitled.Sexp
                 _toValueFunc = toValueFunc;
             }
 
-            public override object ToObjectExactType(SValue value)
+            public override object ToObject(SValue value)
             {
                 try
                 {
@@ -68,7 +68,7 @@ namespace Untitled.Sexp
                 }
             }
 
-            public override SValue ToValueExactType(object? obj)
+            public override SValue ToValue(object? obj)
             {
                 try
                 {
@@ -90,7 +90,10 @@ namespace Untitled.Sexp
         private static readonly Type IDictionaryType = typeof(IDictionary);
         private static readonly Type GenericIDictionaryType = typeof(IDictionary<,>);
 
-        internal static SexpConverter GetConverter(Type type)
+        /// <summary>
+        /// Get converter for specified type.
+        /// </summary>
+        public static SexpConverter GetConverter(Type type)
         {
             if (ConverterTable.TryGetValue(type, out var converter)) return converter;
 
@@ -206,7 +209,7 @@ namespace Untitled.Sexp
         /// </summary>
         public static object? ToObject(Type toType, SValue value)
         {
-            return GetConverter(toType).ToObject(value);
+            return GetConverter(toType).ToObjectWithTypeCheck(value);
         }
 
         /// <summary>
@@ -214,7 +217,7 @@ namespace Untitled.Sexp
         /// </summary>
         public static SValue ToValue(Type fromType, object? obj, SValueFormatting? formatting = null)
         {
-            var value = GetConverter(fromType).ToValue(fromType, obj);
+            var value = GetConverter(fromType).ToValueWithTypeCheck(fromType, obj);
             if (value.Formatting != null) value.Formatting.MergeWith(formatting);
             else value.Formatting = formatting;
             return value;

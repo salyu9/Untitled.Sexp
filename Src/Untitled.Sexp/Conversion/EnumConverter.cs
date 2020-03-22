@@ -46,7 +46,7 @@ namespace Untitled.Sexp.Conversion
         public override bool CanConvert(Type type)
             => type == _type;
 
-        public override object? ToObjectExactType(SValue value)
+        public override object? ToObject(SValue value)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace Untitled.Sexp.Conversion
             }
         }
 
-        public override SValue ToValueExactType(object obj)
+        public override SValue ToValue(object obj)
         {
             if (_asSymbol)
             {

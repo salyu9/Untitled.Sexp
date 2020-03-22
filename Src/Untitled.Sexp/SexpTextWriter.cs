@@ -536,7 +536,7 @@ namespace Untitled.Sexp
 
         private void WriteTypeIdentifier(TypeIdentifier value, CharacterFormatting characterFormatting)
         {
-            Put("#type:");
+            Put("#t:");
             WriteSymbol(value._symbol, characterFormatting);
         }
 

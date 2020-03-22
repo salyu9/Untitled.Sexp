@@ -33,7 +33,7 @@ namespace Untitled.Sexp.Conversion
             _members = GetMembers().ToDictionary(m => m.Name);
         }
 
-        public override object? ToObjectExactType(SValue value)
+        public override object? ToObject(SValue value)
         {
             if (!value.IsList) throw new SexpConvertException(_type, value);
 
@@ -86,7 +86,7 @@ namespace Untitled.Sexp.Conversion
             return result;
         }
 
-        public override SValue ToValueExactType(object obj)
+        public override SValue ToValue(object obj)
         {
             var builder = _multiline
                 ? new ListBuilder(new ListFormatting

@@ -124,48 +124,82 @@ namespace Untitled.Sexp.Tests
 
         #region Polymorphic
 
+#pragma warning disable CS0659
+        [SexpAsList]
         [SexpCustomTypeResolver(typeof(OperationTypeResolver))]
-        abstract class OperationBase
+        class OperationBase
         {
+            public virtual string Information => "Base";
             public class OperationTypeResolver : LookupTypeResolver
             {
                 public OperationTypeResolver()
                 {
+                    Add("base", typeof(OperationBase));
                     Add("add", typeof(Add));
                     Add("sub", typeof(Sub));
                 }
             }
+            public override bool Equals(object? obj)
+                => obj?.GetType() == typeof(OperationBase);
         }
-#pragma warning disable CS0659
         [SexpAsList]
         class Add : OperationBase
         {
+            public override string Information => "Add";
             public List<int> Operands { get; set; } = new List<int>();
 
             public override bool Equals(object? obj)
-            {
-                if (obj is Add add)
-                {
-                    return Operands.SequenceEqual(add.Operands);
-                }
-                return false;
-            }
+                => obj is Add add && Operands.SequenceEqual(add.Operands);
         }
 
         [SexpAsList]
         class Sub : OperationBase
         {
+            public override string Information => "Sub";
             public int A { get; set; }
             public int B { get; set; }
 
             public override bool Equals(object? obj)
+                => obj is Sub sub && A == sub.A && B == sub.B;
+        }
+
+        [SexpAsList]
+        [SexpCustomTypeResolver(typeof(GeneralIdOperationTypeResolver))]
+        class GeneralIdOperationBase
+        {
+            public virtual string Information => "Base";
+            public class GeneralIdOperationTypeResolver : LookupTypeResolver
             {
-                if (obj is Sub sub)
+                public GeneralIdOperationTypeResolver()
                 {
-                    return A == sub.A && B == sub.B;
+                    AddGeneral(Symbol.FromString("base"), typeof(GeneralIdOperationBase));
+                    AddGeneral(Symbol.FromString("add"), typeof(GeneralIdAdd));
+                    AddGeneral(Symbol.FromString("sub"), typeof(GeneralIdSub));
                 }
-                return false;
             }
+            public override bool Equals(object? obj)
+                => obj?.GetType() == typeof(GeneralIdOperationBase);
+        }
+
+        [SexpAsList]
+        sealed class GeneralIdAdd : GeneralIdOperationBase
+        {
+            public override string Information => "Add";
+            public List<int> Operands { get; set; } = new List<int>();
+
+            public override bool Equals(object? obj)
+                => obj is GeneralIdAdd add && Operands.SequenceEqual(add.Operands);
+        }
+
+        [SexpAsList]
+        sealed class GeneralIdSub : GeneralIdOperationBase
+        {
+            public override string Information => "Sub";
+            public int A { get; set; }
+            public int B { get; set; }
+
+            public override bool Equals(object? obj)
+                => obj is GeneralIdSub sub && A == sub.A && B == sub.B;
         }
 #pragma warning restore CS0659
 
@@ -181,24 +215,38 @@ namespace Untitled.Sexp.Tests
             var ops = new List<OperationBase>
             {
                 new Add { Operands = { 6, 7, 8 } },
-                new Sub { A = 10, B = 6 }
+                new Sub { A = 10, B = 6 },
+                new OperationBase(),
             };
-            Assert.Equal("((#type:add (6 7 8)) (#type:sub 10 6))", SexpConvert.Serialize(ops));
+            Assert.Equal(@"((#t:add ""Add"" (6 7 8)) (#t:sub ""Sub"" 10 6) (""Base""))", SexpConvert.Serialize(ops));
 
-            Assert.Equal(ops, SexpConvert.Deserialize<List<OperationBase>>("((#type:add (6 7 8)) (#type:sub 10 6))"));
+            Assert.Equal(ops, SexpConvert.Deserialize<List<OperationBase>>(@"((#t:add ""Add"" (6 7 8)) (#t:sub ""Sub"" 10 6) (""Base""))"));
+
+            var gOps = new List<GeneralIdOperationBase>
+            {
+                new GeneralIdAdd { Operands = { 6, 7, 8 } },
+                new GeneralIdSub { A = 10, B = 6 },
+                new GeneralIdOperationBase(),
+            };
+            Assert.Equal(@"((add ""Add"" (6 7 8)) (sub ""Sub"" 10 6) (base ""Base""))", SexpConvert.Serialize(gOps));
+
+            Assert.Equal(gOps, SexpConvert.Deserialize<List<GeneralIdOperationBase>>(@"((add ""Add"" (6 7 8)) (sub ""Sub"" 10 6) (base ""Base""))"));
+
         }
 
         #endregion
 
         [SexpCustomConverter(typeof(CustomOperationConverter))]
-        abstract class CustomOperationBase
+        class CustomOperationBase
         {
             public class CustomOperationConverter : SexpConverter
             {
+                public string Information { get; set; } = "Base type";
+
                 public override bool CanConvert(Type type)
                     => type == typeof(CustomOperationBase);
 
-                public override object? ToObject(SValue value)
+                public override object? ToObjectWithTypeCheck(SValue value)
                 {
                     var pair = value.AsPair();
                     var typeid = pair.Car.AsSymbol();
@@ -214,12 +262,12 @@ namespace Untitled.Sexp.Tests
                     throw new SexpConvertException(typeof(CustomOperationBase), value);
                 }
 
-                public override object? ToObjectExactType(SValue value)
+                public override object? ToObject(SValue value)
                 {
                     throw new NotImplementedException();
                 }
 
-                public override SValue ToValue(Type type, object? obj)
+                public override SValue ToValueWithTypeCheck(Type type, object? obj)
                 {
                     System.Diagnostics.Debug.Assert(obj != null);
                     if (obj is CustomAdd add)
@@ -233,7 +281,7 @@ namespace Untitled.Sexp.Tests
                     throw new SexpConvertException(typeof(CustomOperationBase), obj);
                 }
 
-                public override SValue ToValueExactType(object obj)
+                public override SValue ToValue(object obj)
                 {
                     throw new NotImplementedException();
                 }

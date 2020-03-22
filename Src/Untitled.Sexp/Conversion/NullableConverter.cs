@@ -21,25 +21,25 @@ namespace Untitled.Sexp.Conversion
         public override bool CanConvert(Type type)
             => type == _type;
 
-        public override object? ToObjectExactType(SValue value)
+        public override object? ToObject(SValue value)
         {
             if (value.IsNull) return null;
 
-            return _elemConverter.ToObject(value);
+            return _elemConverter.ToObjectWithTypeCheck(value);
         }
 
-        public override SValue ToValue(Type type, object? obj)
+        public override SValue ToValueWithTypeCheck(Type type, object? obj)
         {
             if (obj == null) return SValue.Null;
 
             if (obj.GetType() != _elemType) throw new SexpConvertException(type, obj);
 
-            return ToValueExactType(obj);
+            return ToValue(obj);
         }
 
-        public override SValue ToValueExactType(object obj)
+        public override SValue ToValue(object obj)
         {
-            return _elemConverter.ToValue(_elemType, obj);
+            return _elemConverter.ToValueWithTypeCheck(_elemType, obj);
         }
     }
 }

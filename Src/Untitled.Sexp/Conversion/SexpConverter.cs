@@ -13,25 +13,31 @@ namespace Untitled.Sexp.Conversion
         /// </summary>
         /// <param name="value">The sexp value to convert.</param>
         /// <returns>The converted object.</returns>
-        public abstract object? ToObjectExactType(SValue value);
+        public abstract object? ToObject(SValue value);
 
         /// <summary>
         /// Convert sexp value to object with type checked.
         /// </summary>
         /// <param name="value">The sexp value to convert.</param>
         /// <returns>The converted object.</returns>
-        public virtual object? ToObject(SValue value)
+        public virtual object? ToObjectWithTypeCheck(SValue value)
         {
+            if (TypeResolver.GeneralTypeIdentifier)
+            {
+                var pair = value.AsPair();
+                var type = TypeResolver.Resolve(pair.Car);
+                return SexpConvert.GetConverter(type).ToObject(pair.Cdr);
+            }
             if (value.IsPair)
             {
                 var pair = value.AsPair();
                 if (pair.Car.IsTypeIdentifier)
                 {
-                    var type = TypeResolver.Resolve(pair.Car.AsTypeIdentifier());
-                    return SexpConvert.ToObject(type, pair.Cdr);
+                    var type = TypeResolver.Resolve(pair.Car);
+                    return SexpConvert.GetConverter(type).ToObject(pair.Cdr);
                 }
             }
-            return ToObjectExactType(value);
+            return ToObject(value);
         }
 
         /// <summary>
@@ -39,7 +45,7 @@ namespace Untitled.Sexp.Conversion
         /// </summary>
         /// <param name="obj">The object to convert.</param>
         /// <returns>The converted sexp value.</returns>
-        public abstract SValue ToValueExactType(object obj);
+        public abstract SValue ToValue(object obj);
 
         /// <summary>
         /// Convert object to sexp value with type checked.
@@ -47,23 +53,23 @@ namespace Untitled.Sexp.Conversion
         /// <param name="type">The type to convert.</param>
         /// <param name="obj">The object to convert.</param>
         /// <returns>The converted sexp value.</returns>
-        public virtual SValue ToValue(Type type, object? obj)
+        public virtual SValue ToValueWithTypeCheck(Type type, object? obj)
         {
             if (obj == null) return SValue.Null;
 
             var objType = obj.GetType();
 
-            if (type != objType)
+            if (type != objType || TypeResolver.GeneralTypeIdentifier)
             {
                 if (!type.IsInstanceOfType(obj)) throw new SexpConvertException($"Cannot convert {obj} to {type}");
 
-                var value = SexpConvert.ToValue(objType, obj);
+                var value = SexpConvert.GetConverter(objType).ToValue(obj);
                 var typeid = TypeResolver.GetTypeId(objType);
 
                 return SValue.Cons(typeid, value);
             }
 
-            return ToValueExactType(obj);
+            return ToValue(obj);
         }
 
         /// <summary>

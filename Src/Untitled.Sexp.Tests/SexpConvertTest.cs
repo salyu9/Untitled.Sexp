@@ -10,8 +10,6 @@ namespace Untitled.Sexp.Tests
 {
     public class SexpConvertTest
     {
-        private static readonly IEqualityComparer<SValue> Comparer = SValueComparer.Default;
-
         [Fact]
         public void ConvertBasicTypes()
         {
@@ -28,7 +26,7 @@ namespace Untitled.Sexp.Tests
             Assert.Equal("#u8(12 23 34)", SexpConvert.Serialize(new byte[] { 12, 23, 34 }));
             Assert.Equal("|sym bol|", SexpConvert.Serialize(Symbol.FromString("sym bol")));
             Assert.Equal(@"(45 . ""test"")", SexpConvert.Serialize(new Pair(45, "test")));
-            Assert.Equal("#type:System.Text.Encoding", SexpConvert.Serialize(TypeIdentifier.FromString("System.Text.Encoding")));
+            Assert.Equal("#t:System.Text.Encoding", SexpConvert.Serialize(TypeIdentifier.FromString("System.Text.Encoding")));
         }
 
         [Fact]
@@ -46,8 +44,8 @@ namespace Untitled.Sexp.Tests
             Assert.Equal("hello", SexpConvert.Deserialize<string>(@"""hello"""));
             Assert.Equal(new byte[] { 12, 23, 34 }, SexpConvert.Deserialize<byte[]>("#u8(12 23 34)"));
             Assert.Equal(Symbol.FromString("sym bol"), SexpConvert.Deserialize<Symbol>("|sym bol|"));
-            Assert.Equal(new Pair(45, "test"), SexpConvert.Deserialize<Pair>(@"(45 . ""test"")"), Comparer);
-            Assert.Equal(TypeIdentifier.FromString("System.Text.Encoding"), SexpConvert.Deserialize<TypeIdentifier>("#type:System.Text.Encoding"));
+            Assert.Equal(new Pair(45, "test"), SexpConvert.Deserialize<Pair>(@"(45 . ""test"")"));
+            Assert.Equal(TypeIdentifier.FromString("System.Text.Encoding"), SexpConvert.Deserialize<TypeIdentifier>("#t:System.Text.Encoding"));
         }
 
         [Fact]

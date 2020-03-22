@@ -330,9 +330,9 @@ namespace Untitled.Sexp
                                     var next = Peek();
                                     if (IsDelimiter(next)) return SValue.True;
                                     if (next == 'r' || next == 'R') return ReadExpecting("true", SValue.True);
-                                    if (next == 'y' || next == 'Y')
+                                    if (next == ':')
                                     {
-                                        UngetCh(ch);
+                                        GetCh(); // eat ':'
                                         return ReadTypeIdentifier();
                                     }
                                     throw MakeError($"Unknown datum #{(char)ch}{(char)next}");
@@ -555,8 +555,6 @@ namespace Untitled.Sexp
 
         private SValue ReadTypeIdentifier()
         {
-            if (!ReadExpecting("#type:")) throw MakeError("Expecing \"#type:\"");
-
             var str = ReadSymbolString(out var isEscaped);
 
             return new SValue(TypeIdentifier.FromString(str));
