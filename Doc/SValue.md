@@ -1,6 +1,6 @@
 # SValue
 
-```SValue``` is the core tpye in Untitled.Sexp. It represents an s-expression value/object. The content of an ```SValue``` can be a number, boolean, character, symbol, string, pair/list, or a byte array.
+```SValue``` is the core type in Untitled.Sexp. It represents an s-expression value/object. The content of an ```SValue``` can be a number, boolean, character, symbol, string, pair/list, or a byte array.
 The syntax of values of these types is similar to scheme.
 
 ## Symbols
