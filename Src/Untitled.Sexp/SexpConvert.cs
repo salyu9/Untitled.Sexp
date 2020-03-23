@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Untitled.Sexp.Conversion;
-using System.Reflection;
 using Untitled.Sexp.Attributes;
 using Untitled.Sexp.Formatting;
 using System.Collections;
+using static Untitled.Sexp.Utils;
 
 namespace Untitled.Sexp
 {
@@ -286,6 +286,27 @@ namespace Untitled.Sexp
         public static void Write<T>(SexpTextWriter writer, T obj, SValueFormatting? formatting = null)
         {
             writer.Write(ToValue(obj, formatting));
+        }
+
+        /// <summary>
+        /// Deserialize a file, return deserialized objects.
+        /// </summary>
+        public static T DeserializeFile<T>(string filePath)
+        {
+            using var reader = new StreamReader(filePath, Utf8, true);
+            return SexpConvert.ToObject<T>(new SexpTextReader(reader).Read());
+        }
+
+        /// <summary>
+        /// Deserialize a file, return all deserialized objects.
+        /// </summary>
+        public static IEnumerable<T> DeserializeFileAll<T>(string filePath)
+        {
+            using var reader = new StreamReader(filePath, Utf8, true);
+            foreach (var value in new SexpTextReader(reader).ReadAll())
+            {
+                yield return SexpConvert.ToObject<T>(value);
+            }
         }
     }
 }

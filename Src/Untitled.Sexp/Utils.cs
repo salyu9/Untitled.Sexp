@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Text;
 
 namespace Untitled.Sexp
 {
     internal static class Utils
     {
+        public static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
+        
         public static bool IsLineEnd(int ch)
             => ch == '\r'
                 || ch == '\n'
