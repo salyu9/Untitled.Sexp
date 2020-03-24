@@ -539,16 +539,11 @@ namespace Untitled.Sexp
                 return new SValue(Symbol.FromString(str));
             }
 
-            if (lower.Length == 6)
+            if (Utils.TryParseDecimalNumber(lower, out var l, out var d, out var exn))
             {
-                if (StringEquals(lower, "+nan.0")) return new SValue(double.NaN);
-                if (StringEquals(lower, "+inf.0")) return new SValue(double.PositiveInfinity);
-                if (StringEquals(lower, "-nan.0")) return new SValue(double.NaN);
-                if (StringEquals(lower, "-inf.0")) return new SValue(double.NegativeInfinity);
+                if (exn != null) throw MakeError($"Number overflowed: {lower}", exn);
+                return l != null ? new SValue(l) : new SValue(d!);
             }
-
-            if (long.TryParse(str, out var longResult)) return new SValue(longResult);
-            if (double.TryParse(str, out var doubleResult)) return new SValue(doubleResult);
 
             return new SValue(Symbol.FromString(str));
         }

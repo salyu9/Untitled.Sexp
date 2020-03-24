@@ -116,6 +116,17 @@ namespace Untitled.Sexp.Tests
             Assert.Equal(@"𪚥", Write(Symbol(@"𪚥")));
             Assert.Equal(@"|\x2a6a5;|", Write(Symbol(@"𪚥", ascii)));
             Assert.Equal(@"|\U0002a6a5|", Write(Symbol(@"𪚥", asciiUStyle)));
+
+            Assert.Equal(@"|#t|", Write(Symbol("#t")));
+            Assert.Equal(@"|123|", Write(Symbol("123")));
+            Assert.Equal(@"||", Write(Symbol("")));
+            Assert.Equal(@"|+1|", Write(Symbol("+1")));
+            Assert.Equal(@"|-inf.0|", Write(Symbol("-inf.0")));
+            Assert.Equal(@"inf.0", Write(Symbol("inf.0")));
+            Assert.Equal(@"|1.6|", Write(Symbol("1.6")));
+            Assert.Equal(@"1.6.2", Write(Symbol("1.6.2")));
+            Assert.Equal(@"|1e6|", Write(Symbol("1e6")));
+            Assert.Equal(@"1e6e2", Write(Symbol("1e6e2")));
         }
 
         [Fact]

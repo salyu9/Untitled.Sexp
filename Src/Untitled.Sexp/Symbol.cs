@@ -16,9 +16,23 @@ namespace Untitled.Sexp
         /// </summary>
         public string Name { get; }
 
+        internal bool ShouldEscape { get; }
+
         private Symbol(string name)
         {
             Name = name;
+            ShouldEscape = name.Length == 0 || name[0] == '#' || Utils.TryParseDecimalNumber(name, out var l, out var d, out var exn);
+            if (!ShouldEscape)
+            {
+                foreach (var ch in name)
+                {
+                    if (ch == '|' || ch == '\\' || IsDelimiter(ch) || !IsPrintable(ch))
+                    {
+                        ShouldEscape = true;
+                        break;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -32,15 +46,15 @@ namespace Untitled.Sexp
             {
                 return symbol;
             }
+            var newSymbol = new Symbol(name);
             lock (SymbolTable)
             {
                 if (SymbolTable.TryGetValue(name, out symbol))
                 {
                     return symbol;
                 }
-                symbol = new Symbol(name);
-                SymbolTable.Add(name, symbol);
-                return symbol;
+                SymbolTable.Add(name, newSymbol);
+                return newSymbol;
             }
         }
 

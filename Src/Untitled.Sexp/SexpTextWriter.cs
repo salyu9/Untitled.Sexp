@@ -24,37 +24,7 @@ namespace Untitled.Sexp
 
         private static readonly BytesFormatting DefaultBytesFormatting = new BytesFormatting();
 
-        private static bool IsPrintable(byte b)
-        {
-            return (b >= 0x20 && b <= 0x7E) || b >= 0xA0;
-        }
-
-        private static bool IsPrintable(char ch)
-        {
-            if (ch <= 0xFF) // latin-1
-            {
-                return IsPrintable((byte)ch);
-            }
-            var cat = char.GetUnicodeCategory(ch);
-            return cat != UnicodeCategory.Control
-                && cat != UnicodeCategory.Format
-                && cat != UnicodeCategory.PrivateUse
-                && cat != UnicodeCategory.OtherNotAssigned;
-        }
-
         private char[] _surrogateBuffer = new char[2];
-
-        private bool IsPrintable(int point)
-        {
-            if (point <= 0xFFFF) return IsPrintable((char)point);
-
-            DispartSurrogateToBuffer(point, _surrogateBuffer);
-            var cat = char.GetUnicodeCategory(new string(_surrogateBuffer), 0);
-            return cat != UnicodeCategory.Control
-                && cat != UnicodeCategory.Format
-                && cat != UnicodeCategory.PrivateUse
-                && cat != UnicodeCategory.OtherNotAssigned;
-        }
 
         private static char GetOpeningChar(ParenthesesType parentheses)
         {
@@ -489,16 +459,16 @@ namespace Untitled.Sexp
         private void WriteSymbol(Symbol value, CharacterFormatting characterFormatting)
         {
             var name = value.Name;
-            var shouldEscape = name.Length == 0;
+            var shouldEscape = value.ShouldEscape;
 
             var asciiOnly = characterFormatting.AsciiOnly ?? false;
             var uStyleEscape = characterFormatting.Escaping == EscapingStyle.UStyle;
 
-            if (!shouldEscape)
+            if (!shouldEscape && asciiOnly)
             {
-                foreach (var scalar in EnumerateScalarValues(name))
+                foreach (var ch in name)
                 {
-                    if ((asciiOnly && (scalar < 0x20 || scalar > 0x7e)) || scalar == '|' || scalar == '\\' || IsDelimiter(scalar) || !IsPrintable(scalar))
+                    if ((asciiOnly && (ch < 0x20 || ch > 0x7e)))
                     {
                         shouldEscape = true;
                         break;
@@ -590,7 +560,7 @@ namespace Untitled.Sexp
                     Put(Convert.ToString(b, 2));
                     break;
                 default:
-                    throw new ArgumentException($"Invalid {nameof(NumberRadix)}: {radix}");
+                    throw CreateInvalidEnumException(nameof(radix), radix);
             }
         }
 

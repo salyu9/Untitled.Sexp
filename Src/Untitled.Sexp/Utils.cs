@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -9,7 +10,7 @@ namespace Untitled.Sexp
     internal static class Utils
     {
         public static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
-        
+
         public static bool IsLineEnd(int ch)
             => ch == '\r'
                 || ch == '\n'
@@ -59,7 +60,7 @@ namespace Untitled.Sexp
                 || ch == '(' || ch == '[' || ch == '{'
                 || ch == ')' || ch == ']' || ch == '}'
                 || ch == '"' || ch == '\'' || ch == ';' || ch == ','
-                || (ch <= 0xFF && char.IsWhiteSpace((char)ch));
+                || (ch <= 0xFFFF && char.IsWhiteSpace((char)ch));
 
         public static bool IsDigit(int ch)
             => ch >= '0' && ch <= '9';
@@ -178,6 +179,85 @@ namespace Untitled.Sexp
 
         public static string ToHex(this int s)
             => ByteHexTable[s >> 24] + ByteHexTable[(s >> 16) & 0xFF] + ByteHexTable[(s >> 8) & 0xFF] + ByteHexTable[s & 0xFF];
+
+        public static bool IsPrintable(byte b)
+            => (b >= 0x20 && b <= 0x7E) || b >= 0xA0;
+
+        public static bool IsPrintable(char ch)
+        {
+            if (ch <= 0xFF) // latin-1
+            {
+                return IsPrintable((byte)ch);
+            }
+            var cat = char.GetUnicodeCategory(ch);
+            return cat != UnicodeCategory.Control
+                && cat != UnicodeCategory.Format
+                && cat != UnicodeCategory.PrivateUse
+                && cat != UnicodeCategory.OtherNotAssigned;
+        }
+
+        public static bool IsPrintable(int ch)
+            => ch > 0xFFFF || IsPrintable((char)ch);
+
+        /// <summary>
+        /// Try parse string to decimal number. Returns whether the input is a number.
+        /// </summary>
+        /// <param name="input">The string to parse.</param>
+        /// <param name="l">If string is a integer and parse succeeded, l is the result.</param>
+        /// <param name="d">If string is a floating and parse succeeded, d is the result.</param>
+        /// <param name="overflow">If string is a number but overflowed, return the exception with out argument.</param>
+        /// <returns>True if s is a number, otherwise false.</returns>
+        public static bool TryParseDecimalNumber(this string input, out long? l, out double? d, out OverflowException? overflow)
+        {
+            l = null;
+            d = null;
+            overflow = null;
+
+            if (input.Length == 0) return false;
+
+            if (input.Length == 6)
+            {
+                if (StringEquals(input, "+nan.0")) { d = double.NaN; return true; }
+                if (StringEquals(input, "+inf.0")) { d = double.PositiveInfinity; return true; }
+                if (StringEquals(input, "-nan.0")) { d = double.NaN; return true; }
+                if (StringEquals(input, "-inf.0")) { d = double.NegativeInfinity; return true; }
+            }
+
+            var isInterger = true;
+
+            var ch = input[0];
+            var i = ch == '+' || ch == '-' ? 1 : 0;
+            while (i < input.Length)
+            {
+                ch = input[i];
+                if (ch == '.' || ch == 'e')
+                {
+                    isInterger = false;
+                    break;
+                }
+                else if (!IsDigit(ch))
+                {
+                    return false;
+                }
+                ++i;
+            }
+
+            try
+            {
+                if (isInterger) l = long.Parse(input);
+                else d = double.Parse(input);
+                return true;
+            }
+            catch (OverflowException exn)
+            {
+                overflow = exn;
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
 
         public static Exception CreateInvalidEnumException<T>(string argumentName, T invalidValue) where T : Enum
             => new InvalidEnumArgumentException(argumentName, Convert.ToInt32(invalidValue), typeof(T));
