@@ -278,7 +278,7 @@ namespace Untitled.Sexp.Tests
                     {
                         return SValue.List(Symbol.FromString("sub"), sub.A, sub.B);
                     }
-                    throw new SexpConvertException(typeof(CustomOperationBase), obj);
+                    throw new SexpConvertException(typeof(CustomOperationBase), obj!);
                 }
 
                 public override SValue ToValue(object obj)

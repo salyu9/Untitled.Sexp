@@ -210,7 +210,7 @@ namespace Untitled.Sexp
         /// </summary>
         public IEnumerable<SValue> AsEnumerable()
         {
-            if (!IsList) throw new InvalidCastException($"The sexp value is not a list");
+            if (!IsList) throw new InvalidCastException($"The sexp value ({this}) is not a list");
 
             var current = this;
             while (!current.IsNull)
@@ -253,6 +253,18 @@ namespace Untitled.Sexp
         /// </summary>
         public List<T> ToList<T>()
             => AsEnumerable<T>().ToList();
+
+        /// <summary>
+        /// Cast to array of sexp values.
+        /// </summary>
+        public SValue[] ToArray()
+            => AsEnumerable().ToArray();
+
+        /// <summary>
+        /// Cast to array of sexp values.
+        /// </summary>
+        public T[] ToArray<T>()
+            => AsEnumerable<T>().ToArray();
 
         /// <summary>
         /// Implicit cast bool to sexp value.

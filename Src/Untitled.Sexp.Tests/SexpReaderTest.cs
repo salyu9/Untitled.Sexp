@@ -108,29 +108,40 @@ namespace Untitled.Sexp.Tests
             Assert.Equal(Symbol("two words"), Read(@"|two\U0020words|"));
             Assert.Throws<SexpReaderException>(() => Read(@"|two\U0020words|", ForbidAllSettings));
             Assert.Equal(Symbol("the-word-recursion-has-many-meanings"), Read("the-word-recursion-has-many-meanings"));
-            Assert.Equal(new SValue(123), Read("123"));
-            Assert.Equal(new SValue(-123), Read("-123"));
-            Assert.Equal(new SValue(0x7FFFFFFF), Read("2147483647"));
-            Assert.Equal(new SValue(0x80000000L), Read("2147483648"));
-            Assert.Equal(new SValue(4.0), Read("4.0"));
-            Assert.Equal(new SValue(-4.0), Read("-4.0"));
-            Assert.Equal(new SValue(2e5), Read("2e5"));
-            Assert.Equal(new SValue(2.1e5), Read("2.1e5"));
-            Assert.Equal(new SValue(double.NaN), Read("+nan.0"));
-            Assert.Equal(new SValue(-double.NaN), Read("-nan.0"));
-            Assert.Equal(new SValue(double.PositiveInfinity), Read("+inf.0"));
-            Assert.Equal(new SValue(double.NegativeInfinity), Read("-inf.0"));
+
+            
+            Assert.Equal(123, Read("123"));
+            Assert.Equal(-123, Read("-123"));
+            Assert.Equal(0x7FFFFFFF, Read("2147483647"));
+            Assert.Equal(0x80000000L, Read("2147483648"));
+            Assert.Equal(4.0, Read("4.0"));
+            Assert.Equal(-4.0, Read("-4.0"));
+            Assert.Equal(2e5, Read("2e5"));
+            Assert.Equal(2.1e5, Read("2.1e5"));
+            Assert.Equal(double.NaN, Read("+nan.0"));
+            Assert.Equal(-double.NaN, Read("-nan.0"));
+            Assert.Equal(double.PositiveInfinity, Read("+inf.0"));
+            Assert.Equal(double.NegativeInfinity, Read("-inf.0"));
+            
+            Assert.Throws<SexpReaderException>(() => Read(@"123132545343213132135678971"));
+
+            // https://docs.microsoft.com/dotnet/core/compatibility/corefx#floating-point-parsing-operations-no-longer-fail-or-throw-an-overflowexception
+            #if NETCOREAPP3_0 || NETCOREAPP3_1
+            Assert.Equal(double.PositiveInfinity, Read(@"1e400"));
+            #else
+            Assert.Throws<SexpReaderException>(() => Read(@"1e400"));
+            #endif
         }
 
         [Fact]
         public void ReadNumber()
         {
-            Assert.Equal(new SValue(0x1AF), Read("#x1AF"));
-            Assert.Equal(new SValue(0x7FFFFFFF), Read("#x7FFFFFFF"));
-            Assert.Equal(new SValue(0x80000000L), Read("#x80000000"));
-            Assert.Equal(new SValue(5214), Read("#d5214"));
-            Assert.Equal(new SValue(0xF56), Read("#o7526"));
-            Assert.Equal(new SValue(0b10101011), Read("#b10101011"));
+            Assert.Equal(0x1AF, Read("#x1AF"));
+            Assert.Equal(0x7FFFFFFF, Read("#x7FFFFFFF"));
+            Assert.Equal(0x80000000L, Read("#x80000000"));
+            Assert.Equal(5214, Read("#d5214"));
+            Assert.Equal(0xF56, Read("#o7526"));
+            Assert.Equal(0b10101011, Read("#b10101011"));
             Assert.Throws<SexpReaderException>(() => Read("#xtaes"));
             Assert.Throws<SexpReaderException>(() => Read("#d45AF"));
             Assert.Throws<SexpReaderException>(() => Read("#o5478"));

@@ -3,24 +3,29 @@
   <PropertyGroup>
     <AssemblyName>Untitled.Sexp</AssemblyName>
     <AssemblyTitle>Untitled.Sexp</AssemblyTitle>
+    <Title>Untitled.Sexp</Title>
     <Description>Simple .Net library for reading, writing and serializing s-expressions.</Description>
-    <TargetFrameworks>netstandard2.1;netstandard2.0;net47;net45;net40</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;netstandard2.0;net47;net46;net45</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Nullable>enable</Nullable>
     <PackageId>Untitled.Sexp</PackageId>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <PackageTags>sexp;sexpr;sexpression;serialization</PackageTags>
     <PackageProjectUrl>https://github.com/salyu9/Untitled.Sexp</PackageProjectUrl>
     <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
     <PackageIcon>parentheses.png</PackageIcon>
   </PropertyGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Untitled.Sexp.Tests" />
-  </ItemGroup>
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net46'))">
+    <DefineConstants>NO_VALUETUPLE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net45'))">
+    <DefineConstants>NO_VALUETUPLE</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(PackageIcon)" Pack="true" PackagePath=""/>

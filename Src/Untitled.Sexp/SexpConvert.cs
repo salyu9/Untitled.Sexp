@@ -85,6 +85,20 @@ namespace Untitled.Sexp
         }
 
         private static readonly Type NullableType = typeof(Nullable<>);
+
+        #if !NO_VALUETUPLE
+        private static readonly HashSet<Type> ValueTupleTypes = new HashSet<Type>{
+            typeof(ValueTuple<>),
+            typeof(ValueTuple<,>),
+            typeof(ValueTuple<,,>),
+            typeof(ValueTuple<,,,>),
+            typeof(ValueTuple<,,,,>),
+            typeof(ValueTuple<,,,,,>),
+            typeof(ValueTuple<,,,,,,>),
+            typeof(ValueTuple<,,,,,,,>),
+        };
+        #endif // !NO_VALUETUPLE
+
         private static readonly Type IListType = typeof(IList);
         private static readonly Type GenericICollectionType = typeof(ICollection<>);
         private static readonly Type IDictionaryType = typeof(IDictionary);
@@ -126,7 +140,7 @@ namespace Untitled.Sexp
             }
             if (attrMatched > 1) throw new SexpException($"Cannot apply multiple convertion attributes to the same type {type.FullName}");
 
-            SexpConverter newConverter;
+            SexpConverter? newConverter = null;
             if (customConverterType != null)
             {
                 newConverter = (SexpConverter)Activator.CreateInstance(customConverterType);
@@ -151,35 +165,47 @@ namespace Untitled.Sexp
             {
                 newConverter = new EnumConverter(type);
             }
-            else if (type.IsGenericType && type.GetGenericTypeDefinition() == NullableType)
+            else if (type.IsGenericType)
             {
-                newConverter = new NullableConverter(type);
+                var genericType = type.GetGenericTypeDefinition();
+                if (genericType == NullableType)
+                {
+                    newConverter = new NullableConverter(type);
+                }
+                
+                #if !NO_VALUETUPLE
+                else if (ValueTupleTypes.Contains(genericType))
+                {
+                    newConverter = new ValueTupleConverter(type);
+                }
+                #endif // !NO_VALUETUPLE
+
+                #if !AOT
+                else if (type.GetInterface(typeof(IDictionary<,>).FullName) != null)
+                {
+                    var dictInterface = type.GetInterface(typeof(IDictionary<,>).FullName);
+                    var converterType = typeof(GenericDictionaryConverter<,>).MakeGenericType(dictInterface.GetGenericArguments());
+                    newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
+                }
+                else if (type.GetInterface(typeof(ICollection<>).FullName) != null)
+                {
+                    var collectionInterface = type.GetInterface(typeof(ICollection<>).FullName);
+                    var converterType = typeof(GenericCollectionConverter<>).MakeGenericType(collectionInterface.GetGenericArguments());
+                    newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
+                }
+                #else //!AOT
+                else if (type.GetInterface(typeof(IDictionary<,>).FullName) != null)
+                {
+                    var dictInterface = type.GetInterface(typeof(IDictionary<,>).FullName);
+                    newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
+                }
+                else if (type.GetInterface(typeof(ICollection<>).FullName) != null)
+                {
+                    var collectionInterface = type.GetInterface(typeof(ICollection<>).FullName);
+                    newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
+                }
+                #endif //!AOT
             }
-#if !AOT
-            else if (type.GetInterface(typeof(IDictionary<,>).FullName) != null)
-            {
-                var dictInterface = type.GetInterface(typeof(IDictionary<,>).FullName);
-                var converterType = typeof(GenericDictionaryConverter<,>).MakeGenericType(dictInterface.GetGenericArguments());
-                newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
-            }
-            else if (type.GetInterface(typeof(ICollection<>).FullName) != null)
-            {
-                var collectionInterface = type.GetInterface(typeof(ICollection<>).FullName);
-                var converterType = typeof(GenericCollectionConverter<>).MakeGenericType(collectionInterface.GetGenericArguments());
-                newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
-            }
-#else
-            else if (type.GetInterface(typeof(IDictionary<,>).FullName) != null)
-            {
-                var dictInterface = type.GetInterface(typeof(IDictionary<,>).FullName);
-                newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
-            }
-            else if (type.GetInterface(typeof(ICollection<>).FullName) != null)
-            {
-                var collectionInterface = type.GetInterface(typeof(ICollection<>).FullName);
-                newConverter = (SexpConverter)Activator.CreateInstance(converterType, type);
-            }
-#endif
             else if (IDictionaryType.IsAssignableFrom(type))
             {
                 newConverter = new NonGenericDictionaryConverter(type);
@@ -188,7 +214,8 @@ namespace Untitled.Sexp
             {
                 newConverter = new NonGenericListConverter(type);
             }
-            else
+            
+            if (newConverter == null)
             {
                 newConverter = new AsAssociationListConverter(type, null);
             }

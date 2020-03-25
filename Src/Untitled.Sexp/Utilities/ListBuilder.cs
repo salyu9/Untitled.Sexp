@@ -61,6 +61,33 @@ namespace Untitled.Sexp.Utilities
             return this;
         }
 
+        /// <summary>
+        /// Append a sexp list into result list.
+        /// </summary>
+        /// <param name="list">Sexp list to append.</param>
+        public ListBuilder AddRange(SValue list)
+        {
+            if (!list.IsList) throw new SexpException($"Cannot add non-list as range into {nameof(ListBuilder)}");
+
+            return AddRange(list.AsEnumerable());
+        }
+
+        /// <summary>
+        /// Append sexp values into result list.
+        /// </summary>
+        /// <param name="values">Sexp values to append.</param>
+        public ListBuilder AddRange(IEnumerable<SValue> values)
+        {
+            foreach (var value in values)
+            {
+                var pair = new Pair(value, SValue.Null);
+                _current._cdr = pair;
+                _current = pair;
+            }
+            ++_version;
+            return this;
+        }
+
         IEnumerator IEnumerable.GetEnumerator()
             => GetEnumerator();
 

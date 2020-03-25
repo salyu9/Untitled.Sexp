@@ -21,7 +21,7 @@ namespace Untitled.Sexp
         private Symbol(string name)
         {
             Name = name;
-            ShouldEscape = name.Length == 0 || name[0] == '#' || Utils.TryParseDecimalNumber(name, out var l, out var d, out var exn);
+            ShouldEscape = name.Length == 0 || name[0] == '#' || Utils.TryParseDecimalNumber(name.ToLowerInvariant(), out var l, out var d, out var exn);
             if (!ShouldEscape)
             {
                 foreach (var ch in name)
@@ -81,5 +81,9 @@ namespace Untitled.Sexp
         /// <summary />
         public override int GetHashCode()
             => Name.GetHashCode();
+
+        /// <summary />
+        public override string ToString()
+            => "Symbol(" + Name + ")";
     }
 }

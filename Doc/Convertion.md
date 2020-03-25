@@ -43,6 +43,15 @@ SexpConvert.Serialize(TestEnum.A | TestEnum.B) // (A B)
 SexpConvert.Deserialize<TestEnum>(9999) // throws SexpConvertException
 ```
 
+## ValueTuples
+
+ValueTuples will be converted to list of tuple elements. Available if ValueTuple is supported (net47/netstandard2.0 and higher).
+
+```csharp
+SexpConvert.Serialize((1, "str")) // (1 "str")
+SexpConvert.Deserialize<(int, string)>("(1 \"str\"") // (1, "str")
+```
+
 ## Custom types
 
 If a type is marked as ```[SexpAssociationList]```, an instance of it will be converted to an association-list, with the ```AssociationListStyle``` specified by the attribute. The list contains properties and fields of the instance. Members marked as ```[SexpIgnore]``` will be ignored. Use ```[SexpMember]``` attribute to specify the name and order of the member. If any member has its order specified, all members should has positive orders specified.

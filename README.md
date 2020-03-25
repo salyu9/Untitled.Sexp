@@ -25,6 +25,9 @@ var output = SexpConvert.Serialize(info);
 //  (Price . 25)
 //  (Language . English)
 //  (Versions "Hardcover" "Paperback" "Digital"))
+
+var tuple = SexpConvert.Deserialize<(int, string, Symbol, (int, double, ValueTuple<int>))>(@"(5 ""str"" ++ (1 2 (3)))");
+// (5, "str", Symbol("++"), (1, 2.0, ValueTuple.Create(3))
 ```
 
 ## Usage

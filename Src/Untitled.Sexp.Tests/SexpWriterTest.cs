@@ -119,6 +119,8 @@ namespace Untitled.Sexp.Tests
 
             Assert.Equal(@"|#t|", Write(Symbol("#t")));
             Assert.Equal(@"|123|", Write(Symbol("123")));
+            Assert.Equal(@"|123132545343213132135678971|", Write(Symbol("123132545343213132135678971")));
+            Assert.Equal(@"|1e400|", Write(Symbol("1e400")));
             Assert.Equal(@"||", Write(Symbol("")));
             Assert.Equal(@"|+1|", Write(Symbol("+1")));
             Assert.Equal(@"|-inf.0|", Write(Symbol("-inf.0")));
